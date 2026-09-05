@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Lint
+        run: uv run ruff check src tests scripts
+
+      - name: Check the shared knowledge base is in sync
+        run: |
+          uv run python scripts/build_field_catalog.py
+          uv run python scripts/build_skill_taxonomy.py
+          uv run python scripts/sync_extension_data.py
+          git diff --exit-code -- src/jobwrapper/data extension/shared/data \
+            || (echo "::error::generated data files are stale - run the scripts and commit" && exit 1)
+
+      - name: Install Chromium
+        run: uv run playwright install --with-deps chromium
+
+      - name: Test
+        run: uv run pytest -q
+
+      - name: Build the wheel
+        run: uv build --wheel
