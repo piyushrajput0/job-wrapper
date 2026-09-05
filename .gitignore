@@ -29,3 +29,6 @@ applications.csv
 !docs/**/*.pdf
 screenshots/
 .DS_Store
+
+# build output
+dist/

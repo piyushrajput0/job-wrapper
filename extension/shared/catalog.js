@@ -127,6 +127,11 @@ JW.catalog = {
 
   matchOption(value, options) {
     if (!options || !options.length) return value || null;
+    // drop placeholders - "" is a substring of everything and would always win
+    const PLACEHOLDER = ["select", "select...", "select one", "choose", "choose one", "-", "--"];
+    options = options.filter((o) => String(o).trim()
+      && !PLACEHOLDER.includes(String(o).trim().toLowerCase()));
+    if (!options.length) return null;
     const target = String(value || "").toLowerCase().trim();
     if (!target) return null;
     const lowered = options.map((o) => String(o).toLowerCase().trim());

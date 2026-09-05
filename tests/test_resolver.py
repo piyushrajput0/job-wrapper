@@ -127,3 +127,16 @@ def test_value_provider_covers_every_catalog_key(profile):
     provider = ValueProvider(profile, ResolveContext(company="Acme"))
     for key in catalog.by_key:
         provider.value_for(key)  # must not raise
+
+
+def test_placeholder_options_never_win(resolver):
+    """A blank <option> is a substring of every value - it must not swallow the match."""
+    from jobwrapper.autofill.catalog import match_option
+
+    assert match_option("Bachelor of Science", ["", "Bachelor's Degree", "Master's Degree"]) \
+        == "Bachelor's Degree"
+    assert match_option("Yes", ["Select...", "Yes", "No"]) == "Yes"
+    result = resolver.resolve_field(FD(
+        name="q", label="Highest level of education completed", input_type="select",
+        options=["", "Bachelor's Degree", "Master's Degree"]))
+    assert result.value == "Bachelor's Degree"

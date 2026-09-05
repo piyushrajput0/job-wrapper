@@ -99,8 +99,12 @@ JW.detect = {
         tag: el.tagName.toLowerCase(), input_type: type, name: el.name || "",
         element_id: el.id || "", label, aria_label: el.getAttribute("aria-label") || "",
         placeholder: el.placeholder || "", required: !!el.required,
-        options: el.tagName === "SELECT" ? [...el.options].map((o) => JW.util.clean(o.textContent)) : [],
-        option_values: el.tagName === "SELECT" ? [...el.options].map((o) => o.value) : [],
+        options: el.tagName === "SELECT"
+          ? [...el.options].filter((o) => o.value !== "" || JW.util.clean(o.textContent))
+              .map((o) => JW.util.clean(o.textContent)) : [],
+        option_values: el.tagName === "SELECT"
+          ? [...el.options].filter((o) => o.value !== "" || JW.util.clean(o.textContent))
+              .map((o) => o.value) : [],
         maxlength: el.maxLength > 0 ? el.maxLength : null, group: el.name || "", section: "",
         autocomplete: el.getAttribute("autocomplete") || "", current_value: el.value || "",
         visible: type === "file" || !!el.offsetParent,

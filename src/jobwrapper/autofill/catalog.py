@@ -280,6 +280,13 @@ def match_option(value: str, options: list[str], catalog: Catalog | None = None)
     if not options:
         return value or None
     catalog = catalog or Catalog()
+    # drop placeholder options ("", "Select...") - an empty string is a substring of every
+    # value, so leaving it in makes the containment pass match it every time
+    options = [o for o in options if str(o).strip()
+               and str(o).strip().lower() not in {"select", "select...", "select one",
+                                                  "choose", "choose one", "-", "--", "n/a -"}]
+    if not options:
+        return None
     lowered = [o.lower().strip() for o in options]
     target = (value or "").lower().strip()
     if not target:
