@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  body { width: 264px; margin: 0; background: #0f1115; color: #e8ecf3;
+         font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .p { padding: 14px; }
+  h1 { font-size: 14px; margin: 0 0 2px; }
+  .sub { color: #6f7b91; font-size: 11.5px; margin-bottom: 12px; }
+  button { width: 100%; padding: 9px; margin-bottom: 7px; border-radius: 8px; border: 1px solid #262d3b;
+    background: #1b202b; color: #e8ecf3; cursor: pointer; font-weight: 600; }
+  button.primary { background: #5b8cff; border-color: #5b8cff; color: #fff; }
+  .stat { display: flex; justify-content: space-between; color: #a4aec1; font-size: 12px;
+          padding: 4px 0; border-top: 1px solid #1b202b; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #6f7b91; }
+  .dot.on { background: #3fb984; } .dot.off { background: #e05f5f; }
+</style>
+<div class="p">
+  <h1>Job Wrapper</h1>
+  <div class="sub"><span class="dot" id="dot"></span> <span id="server">checking…</span></div>
+  <button class="primary" id="panel">Open panel on this page</button>
+  <button id="scan">Scan this form</button>
+  <button id="options">Settings</button>
+  <div class="stat"><span>Fields filled</span><b id="filled">0</b></div>
+  <div class="stat"><span>Applications recorded</span><b id="apps">0</b></div>
+</div>
+<script src="popup.js"></script>

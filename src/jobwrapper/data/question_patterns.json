@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "note": "Regex-driven handling for questions whose answer depends on a captured value (a technology, a country, a city). Shared by the Python and JS resolvers.",
+  "dynamic": [
+    {
+      "id": "years_with_tech",
+      "pattern": "(?:how many years|years of|years'? )(?:[a-z ]*)(?:experience|exp)(?:[a-z ]*)(?:with|in|using|of)\\s+([a-z0-9+#./ -]{2,40})",
+      "handler": "years_with_skill",
+      "capture": "skill",
+      "terminal": true
+    },
+    {
+      "id": "years_with_tech_reverse",
+      "pattern": "^([a-z0-9+#./ -]{2,40})\\s*[-:(]?\\s*(?:years|yrs)(?: of)?(?: experience)?",
+      "handler": "years_with_skill",
+      "capture": "skill",
+      "terminal": true
+    },
+    {
+      "id": "rate_proficiency",
+      "pattern": "(?:rate|level of|proficiency|how would you rate)(?:[a-z ]*)(?:in|with|of)\\s+([a-z0-9+#./ -]{2,40})",
+      "handler": "proficiency_with_skill",
+      "capture": "skill",
+      "terminal": true
+    },
+    {
+      "id": "have_you_used",
+      "pattern": "(?:have you (?:ever )?(?:used|worked with|built with)|do you have experience (?:with|in)|are you (?:familiar|comfortable) with)\\s+([a-z0-9+#./ -]{2,40})",
+      "handler": "has_skill",
+      "capture": "skill",
+      "terminal": true
+    },
+    {
+      "id": "authorized_in_country",
+      "pattern": "(?:authoriz|authoris|eligible|legal(?:ly)? (?:able|entitled)|right) .*to work in (?:the )?([a-z .]{2,30})",
+      "handler": "work_authorized_in",
+      "capture": "country",
+      "terminal": false
+    },
+    {
+      "id": "located_in",
+      "pattern": "(?:are you (?:currently )?(?:located|based|residing)|do you (?:currently )?(?:live|reside))(?: in)? (?:the )?([a-z ,.]{2,40})",
+      "handler": "located_in",
+      "capture": "place",
+      "terminal": false
+    },
+    {
+      "id": "commute_to",
+      "pattern": "(?:able|willing) to (?:reliably )?commute to ([a-z ,.]{2,40})",
+      "handler": "commute_to",
+      "capture": "place",
+      "terminal": false
+    },
+    {
+      "id": "language_fluency",
+      "pattern": "(?:fluent|fluency|proficient|proficiency|level|native speaker) (?:in|of) ([a-z]{3,20})(?=\\b(?!\\s*(?:study|education|experience|expertise)))",
+      "handler": "language_proficiency",
+      "capture": "language",
+      "terminal": false
+    },
+    {
+      "id": "notice_days",
+      "pattern": "(?:notice period|how (?:much|long) notice)",
+      "handler": "notice_period",
+      "capture": null,
+      "terminal": false
+    },
+    {
+      "id": "why_company_named",
+      "pattern": "why (?:do you want to |would you like to )?(?:work (?:at|for)|join) ([a-z0-9 .&'-]{2,40})",
+      "handler": "essay_why_company",
+      "capture": "company",
+      "terminal": false
+    }
+  ],
+  "proficiency_scales": {
+    "1_5": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "words": [
+      "none",
+      "beginner",
+      "novice",
+      "intermediate",
+      "advanced",
+      "expert"
+    ],
+    "level_map": {
+      "beginner": [
+        "beginner",
+        "novice",
+        "basic",
+        "1",
+        "2",
+        "limited"
+      ],
+      "intermediate": [
+        "intermediate",
+        "working knowledge",
+        "3",
+        "proficient",
+        "competent"
+      ],
+      "advanced": [
+        "advanced",
+        "4",
+        "strong",
+        "highly proficient"
+      ],
+      "expert": [
+        "expert",
+        "5",
+        "master",
+        "guru",
+        "deep expertise"
+      ]
+    }
+  },
+  "how_heard_preferences": [
+    "Company website",
+    "LinkedIn",
+    "Referral",
+    "Job board",
+    "Indeed",
+    "Glassdoor",
+    "Hacker News",
+    "Recruiter",
+    "Other"
+  ],
+  "escalate_always": [
+    "convicted",
+    "felony",
+    "misdemeanor",
+    "criminal",
+    "arrest record",
+    "expunged",
+    "social security",
+    "ssn",
+    "passport number",
+    "national insurance number",
+    "bank account",
+    "salary history",
+    "date of birth",
+    "immigration document number"
+  ]
+}

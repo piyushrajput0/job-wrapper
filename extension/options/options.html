@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Job Wrapper - settings</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0f1115; color: #e8ecf3; font: 14px/1.55 -apple-system,
+         BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .wrap { max-width: 620px; margin: 0 auto; padding: 34px 24px 60px; }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .sub { color: #6f7b91; margin-bottom: 22px; font-size: 13px; }
+  .card { background: #151922; border: 1px solid #262d3b; border-radius: 12px; padding: 18px;
+          margin-bottom: 14px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: #a4aec1;
+       margin: 0 0 12px; }
+  label { display: block; font-size: 12.5px; color: #a4aec1; margin: 12px 0 5px; }
+  input[type=text], input[type=password] { width: 100%; padding: 9px 11px; border-radius: 8px;
+    background: #0f1115; border: 1px solid #262d3b; color: #e8ecf3; }
+  input:focus { outline: none; border-color: #5b8cff; box-shadow: 0 0 0 3px rgba(91,140,255,.16); }
+  .toggle { display: flex; align-items: center; gap: 10px; margin: 11px 0; font-size: 13px; }
+  .toggle input { width: 16px; height: 16px; accent-color: #5b8cff; }
+  .row { display: flex; gap: 9px; margin-top: 16px; }
+  button { padding: 9px 14px; border-radius: 9px; border: 1px solid #262d3b; background: #1b202b;
+    color: #e8ecf3; cursor: pointer; font-weight: 600; }
+  button.primary { background: #5b8cff; border-color: #5b8cff; color: #fff; }
+  .status { margin-top: 12px; font-size: 13px; padding: 9px 12px; border-radius: 8px;
+    background: #1b202b; border-left: 3px solid #5b8cff; }
+  .status.bad { border-left-color: #e05f5f; } .status.good { border-left-color: #3fb984; }
+  .hint { color: #6f7b91; font-size: 12px; margin-top: 5px; }
+  code { background: #1b202b; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+<div class="wrap">
+  <h1>Job Wrapper</h1>
+  <div class="sub">The extension works on any career site. Point it at your local companion
+    server to unlock resume tailoring, the answer bank and application tracking.</div>
+
+  <div class="card">
+    <h2>Companion server</h2>
+    <label for="serverUrl">Server URL</label>
+    <input type="text" id="serverUrl" placeholder="http://127.0.0.1:8787">
+    <div class="hint">Start it with <code>jobwrapper ui</code>.</div>
+    <label for="token">Extension token</label>
+    <input type="password" id="token" placeholder="paste from the Settings page of the web UI">
+    <div class="row">
+      <button id="test">Test connection</button>
+      <button id="sync">Sync profile for offline use</button>
+    </div>
+    <div id="status" class="status" hidden></div>
+  </div>
+
+  <div class="card">
+    <h2>Behaviour</h2>
+    <div class="toggle"><input type="checkbox" id="useServer"><label for="useServer" style="margin:0">
+      Use the companion server when it is reachable</label></div>
+    <div class="toggle"><input type="checkbox" id="useLLM"><label for="useLLM" style="margin:0">
+      Let Claude answer questions the profile cannot</label></div>
+    <div class="toggle"><input type="checkbox" id="autoAnalyze"><label for="autoAnalyze" style="margin:0">
+      Score a posting automatically when I open it</label></div>
+    <div class="toggle"><input type="checkbox" id="confirmBeforeFill"><label for="confirmBeforeFill" style="margin:0">
+      Ask me before filling a form</label></div>
+    <div class="toggle"><input type="checkbox" id="neverSubmit" disabled checked><label for="neverSubmit" style="margin:0">
+      Never press submit (always on)</label></div>
+    <div class="hint">The extension fills and highlights; pressing submit is always yours.</div>
+    <div class="row"><button class="primary" id="save">Save</button></div>
+  </div>
+</div>
+<script src="options.js"></script>

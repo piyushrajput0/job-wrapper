@@ -1,0 +1,91 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>{{ name }} - Resume</title>
+<style>
+  @page { size: letter; margin: 14mm 13mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Charter", "Georgia", "Times New Roman", serif; font-size: 10.5pt;
+         line-height: 1.32; color: #16181d; margin: 0; }
+  header { text-align: center; margin-bottom: 10px; }
+  h1 { font-size: 21pt; margin: 0 0 2px; letter-spacing: .3px; }
+  .headline { color: #4a4a4a; font-size: 10.5pt; margin-bottom: 3px; }
+  .contact { font-size: 9pt; color: #333; }
+  .contact a { color: #1f3a5f; text-decoration: none; }
+  h2 { font-size: 10.5pt; text-transform: uppercase; letter-spacing: .8px; color: #1f3a5f;
+       border-bottom: 1px solid #1f3a5f; padding-bottom: 2px; margin: 12px 0 6px; }
+  .role { display: flex; justify-content: space-between; gap: 12px; }
+  .role .left { font-weight: 700; }
+  .role .right { white-space: nowrap; font-weight: 700; }
+  .sub { display: flex; justify-content: space-between; gap: 12px; color: #4a4a4a;
+         font-style: italic; margin-bottom: 2px; }
+  ul { margin: 2px 0 6px; padding-left: 16px; }
+  li { margin-bottom: 1.5px; }
+  table.skills { width: 100%; border-collapse: collapse; }
+  table.skills td { vertical-align: top; padding: 1px 0; }
+  table.skills td.g { width: 20%; font-weight: 700; padding-right: 8px; }
+  .proj-name { font-weight: 700; }
+  .tech { color: #4a4a4a; font-size: 9pt; }
+</style>
+<header>
+  <h1>{{ name }}</h1>
+  {% if r.headline %}<div class="headline">{{ r.headline }}</div>{% endif %}
+  <div class="contact">
+    {% set bits = [] %}
+    {% if phone %}{% set _ = bits.append(phone) %}{% endif %}
+    {% if email %}{% set _ = bits.append('<a href="mailto:' ~ email ~ '">' ~ email ~ '</a>') %}{% endif %}
+    {% if location %}{% set _ = bits.append(location) %}{% endif %}
+    {% for label, url in links.items() %}
+      {% set _ = bits.append('<a href="' ~ url ~ '">' ~ label|capitalize ~ '</a>') %}
+    {% endfor %}
+    {{ bits | join(' &middot; ') | safe }}
+  </div>
+</header>
+
+{% if r.summary %}<h2>Summary</h2><div>{{ r.summary }}</div>{% endif %}
+
+{% if r.skill_groups %}
+<h2>Skills</h2>
+<table class="skills">
+  {% for group, skills in r.skill_groups.items() %}{% if skills %}
+  <tr><td class="g">{{ group }}</td><td>{{ skills | join(', ') }}</td></tr>
+  {% endif %}{% endfor %}
+</table>
+{% endif %}
+
+{% if r.experience %}
+<h2>Experience</h2>
+{% for exp in r.experience %}
+  <div class="role"><div class="left">{{ exp.title }}</div>
+    <div class="right">{{ exp.start_date | daterange(exp.end_date) }}</div></div>
+  <div class="sub"><div>{{ exp.company }}</div><div>{{ exp.location }}</div></div>
+  {% if exp.bullets %}<ul>{% for b in exp.bullets %}<li>{{ b.text }}</li>{% endfor %}</ul>{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if r.projects %}
+<h2>Projects</h2>
+{% for p in r.projects %}
+  <div><span class="proj-name">{{ p.name }}</span>
+  {% if p.technologies %}<span class="tech"> | {{ p.technologies | join(', ') }}</span>{% endif %}
+  {% if p.url %} &middot; <a href="{{ p.url }}">link</a>{% endif %}</div>
+  {% if p.description %}<div>{{ p.description }}</div>{% endif %}
+  {% if p.bullets %}<ul>{% for b in p.bullets %}<li>{{ b.text }}</li>{% endfor %}</ul>{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if r.education %}
+<h2>Education</h2>
+{% for e in r.education %}
+  <div class="role"><div class="left">{{ e.institution }}</div>
+    <div class="right">{{ e.start_date | daterange(e.end_date) }}</div></div>
+  <div class="sub"><div>{{ e.degree }}{% if e.field_of_study and e.field_of_study.lower() not in e.degree.lower() %}, {{ e.field_of_study }}{% endif %}{% if e.minor %} (Minor: {{ e.minor }}){% endif %}</div>
+    <div>{% if e.gpa %}GPA: {{ e.gpa }}{% endif %}</div></div>
+  {% for d in e.details %}<div>{{ d }}</div>{% endfor %}
+{% endfor %}
+{% endif %}
+
+{% if r.certifications %}<h2>Certifications</h2><div>{{ r.certifications | join(' &middot; ') | safe }}</div>{% endif %}
+
+{% for s in r.extra_sections %}
+<h2>{{ s.title }}</h2><ul>{% for i in s.items %}<li>{{ i }}</li>{% endfor %}</ul>
+{% endfor %}

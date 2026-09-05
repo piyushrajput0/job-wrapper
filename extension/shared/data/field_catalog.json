@@ -1,0 +1,2898 @@
+{
+  "version": 3,
+  "generated_by": "scripts/build_field_catalog.py",
+  "fields": [
+    {
+      "key": "first_name",
+      "type": "text",
+      "value": {
+        "path": "identity.legal_first_name"
+      },
+      "synonyms": [
+        "legal first name",
+        "forename",
+        "fname",
+        "first",
+        "applicant first name",
+        "your first name",
+        "prenom",
+        "nombre"
+      ],
+      "strong": [
+        "first name",
+        "firstname",
+        "given name",
+        "first_name"
+      ],
+      "negative": [
+        "manager",
+        "supervisor",
+        "reference",
+        "referee",
+        "emergency",
+        "referrer",
+        "referred by",
+        "friend",
+        "spouse",
+        "recruiter",
+        "contact person",
+        "beneficiary"
+      ],
+      "priority": 95,
+      "group": "identity",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "text"
+      ]
+    },
+    {
+      "key": "middle_name",
+      "type": "text",
+      "value": {
+        "path": "identity.legal_middle_name"
+      },
+      "synonyms": [
+        "legal middle name",
+        "middle name (optional)",
+        "mi"
+      ],
+      "strong": [
+        "middle name",
+        "middlename",
+        "middle initial"
+      ],
+      "negative": [
+        "manager",
+        "supervisor",
+        "reference",
+        "referee",
+        "emergency",
+        "referrer",
+        "referred by",
+        "friend",
+        "spouse",
+        "recruiter",
+        "contact person",
+        "beneficiary"
+      ],
+      "priority": 60,
+      "group": "identity",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "last_name",
+      "type": "text",
+      "value": {
+        "path": "identity.legal_last_name"
+      },
+      "synonyms": [
+        "legal last name",
+        "lname",
+        "apellido",
+        "second name"
+      ],
+      "strong": [
+        "last name",
+        "lastname",
+        "surname",
+        "family name",
+        "last_name"
+      ],
+      "negative": [
+        "manager",
+        "supervisor",
+        "reference",
+        "referee",
+        "emergency",
+        "referrer",
+        "referred by",
+        "friend",
+        "spouse",
+        "recruiter",
+        "contact person",
+        "beneficiary"
+      ],
+      "priority": 95,
+      "group": "identity",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "full_name",
+      "type": "text",
+      "value": {
+        "compute": "full_name"
+      },
+      "synonyms": [
+        "legal name",
+        "full legal name",
+        "complete name",
+        "name (first and last)"
+      ],
+      "strong": [
+        "full name",
+        "name",
+        "your name",
+        "candidate name",
+        "applicant name"
+      ],
+      "negative": [
+        "manager",
+        "supervisor",
+        "reference",
+        "referee",
+        "emergency",
+        "referrer",
+        "referred by",
+        "friend",
+        "spouse",
+        "recruiter",
+        "contact person",
+        "beneficiary",
+        "first",
+        "last",
+        "middle",
+        "company",
+        "school",
+        "university",
+        "employer",
+        "file",
+        "user",
+        "product",
+        "team",
+        "job",
+        "position"
+      ],
+      "priority": 90,
+      "group": "identity",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "preferred_name",
+      "type": "text",
+      "value": {
+        "path": "identity.preferred_name"
+      },
+      "synonyms": [
+        "what should we call you",
+        "goes by",
+        "preferred first name",
+        "display name"
+      ],
+      "strong": [
+        "preferred name",
+        "nickname"
+      ],
+      "negative": [
+        "manager",
+        "supervisor",
+        "reference",
+        "referee",
+        "emergency",
+        "referrer",
+        "referred by",
+        "friend",
+        "spouse",
+        "recruiter",
+        "contact person",
+        "beneficiary"
+      ],
+      "priority": 55,
+      "group": "identity",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "previous_name",
+      "type": "text",
+      "value": {
+        "path": "identity.previous_name"
+      },
+      "synonyms": [
+        "former name",
+        "other names used"
+      ],
+      "strong": [
+        "previous name",
+        "maiden name"
+      ],
+      "negative": [],
+      "priority": 30,
+      "group": "identity",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "suffix",
+      "type": "text",
+      "value": {
+        "path": "identity.suffix"
+      },
+      "synonyms": [
+        "name suffix",
+        "jr/sr"
+      ],
+      "strong": [
+        "suffix"
+      ],
+      "negative": [],
+      "priority": 25,
+      "group": "identity",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "pronouns",
+      "type": "text",
+      "value": {
+        "path": "identity.pronouns"
+      },
+      "synonyms": [
+        "preferred pronouns",
+        "what are your pronouns"
+      ],
+      "strong": [
+        "pronouns"
+      ],
+      "negative": [],
+      "priority": 30,
+      "group": "identity",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "email",
+      "type": "email",
+      "value": {
+        "path": "contact.email"
+      },
+      "synonyms": [
+        "your email",
+        "contact email",
+        "primary email",
+        "work email",
+        "correo"
+      ],
+      "strong": [
+        "email",
+        "e-mail",
+        "email address"
+      ],
+      "negative": [
+        "manager",
+        "supervisor",
+        "reference",
+        "referee",
+        "emergency",
+        "referrer",
+        "referred by",
+        "friend",
+        "spouse",
+        "recruiter",
+        "contact person",
+        "beneficiary",
+        "confirm",
+        "verify",
+        "re-enter",
+        "referrer"
+      ],
+      "priority": 95,
+      "group": "contact",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "email"
+      ]
+    },
+    {
+      "key": "email_confirm",
+      "type": "email",
+      "value": {
+        "path": "contact.email"
+      },
+      "synonyms": [
+        "repeat email",
+        "confirm your email address"
+      ],
+      "strong": [
+        "confirm email",
+        "re-enter email",
+        "verify email",
+        "email confirmation"
+      ],
+      "negative": [],
+      "priority": 70,
+      "group": "contact",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "alternate_email",
+      "type": "email",
+      "value": {
+        "path": "contact.alternate_email"
+      },
+      "synonyms": [
+        "other email"
+      ],
+      "strong": [
+        "alternate email",
+        "secondary email"
+      ],
+      "negative": [],
+      "priority": 25,
+      "group": "contact",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "phone",
+      "type": "tel",
+      "value": {
+        "path": "contact.phone"
+      },
+      "synonyms": [
+        "mobile number",
+        "contact number",
+        "primary phone",
+        "cell phone",
+        "your phone",
+        "phone (mobile)",
+        "daytime phone",
+        "telefono"
+      ],
+      "strong": [
+        "phone",
+        "phone number",
+        "mobile",
+        "telephone",
+        "cell"
+      ],
+      "negative": [
+        "manager",
+        "supervisor",
+        "reference",
+        "referee",
+        "emergency",
+        "referrer",
+        "referred by",
+        "friend",
+        "spouse",
+        "recruiter",
+        "contact person",
+        "beneficiary",
+        "country code",
+        "extension",
+        "device type"
+      ],
+      "priority": 95,
+      "group": "contact",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "tel"
+      ]
+    },
+    {
+      "key": "phone_country_code",
+      "type": "select",
+      "value": {
+        "path": "contact.phone_country_code"
+      },
+      "synonyms": [
+        "dial code",
+        "phone country code",
+        "+1"
+      ],
+      "strong": [
+        "country phone code",
+        "phone code",
+        "country code"
+      ],
+      "negative": [],
+      "priority": 60,
+      "group": "contact",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "phone_device_type",
+      "type": "select",
+      "value": {
+        "path": "contact.phone_device_type"
+      },
+      "synonyms": [
+        "phone type",
+        "type of phone"
+      ],
+      "strong": [
+        "phone device type",
+        "device type"
+      ],
+      "negative": [],
+      "priority": 50,
+      "group": "contact",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "phone_extension",
+      "type": "text",
+      "value": {
+        "const": ""
+      },
+      "synonyms": [
+        "phone extension"
+      ],
+      "strong": [
+        "extension",
+        "ext"
+      ],
+      "negative": [],
+      "priority": 20,
+      "group": "contact",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "address_line1",
+      "type": "text",
+      "value": {
+        "path": "address.line1"
+      },
+      "synonyms": [
+        "street",
+        "current address",
+        "home address",
+        "mailing address",
+        "residential address",
+        "address line one",
+        "street name and number"
+      ],
+      "strong": [
+        "address line 1",
+        "address",
+        "street address",
+        "addressline1",
+        "address1"
+      ],
+      "negative": [
+        "email",
+        "line 2",
+        "ip",
+        "website",
+        "url",
+        "company address"
+      ],
+      "priority": 85,
+      "group": "address",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "address_line2",
+      "type": "text",
+      "value": {
+        "path": "address.line2"
+      },
+      "synonyms": [
+        "apt",
+        "apartment",
+        "suite",
+        "unit",
+        "line 2",
+        "address line two"
+      ],
+      "strong": [
+        "address line 2",
+        "address2",
+        "addressline2"
+      ],
+      "negative": [],
+      "priority": 60,
+      "group": "address",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "city",
+      "type": "text",
+      "value": {
+        "path": "address.city"
+      },
+      "synonyms": [
+        "current city",
+        "city of residence",
+        "city/town",
+        "locality",
+        "ciudad"
+      ],
+      "strong": [
+        "city",
+        "town",
+        "city name"
+      ],
+      "negative": [
+        "company",
+        "birth",
+        "employer"
+      ],
+      "priority": 85,
+      "group": "address",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "state",
+      "type": "select",
+      "value": {
+        "path": "address.state"
+      },
+      "synonyms": [
+        "state or province",
+        "county/state",
+        "estado",
+        "state/region"
+      ],
+      "strong": [
+        "state",
+        "province",
+        "region",
+        "state/province"
+      ],
+      "negative": [
+        "united states",
+        "employment state",
+        "state of incorporation"
+      ],
+      "priority": 85,
+      "group": "address",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "postal_code",
+      "type": "text",
+      "value": {
+        "path": "address.postal_code"
+      },
+      "synonyms": [
+        "post code",
+        "pin code",
+        "zip/postal code"
+      ],
+      "strong": [
+        "zip",
+        "zip code",
+        "postal code",
+        "postcode",
+        "zipcode"
+      ],
+      "negative": [],
+      "priority": 85,
+      "group": "address",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "country",
+      "type": "select",
+      "value": {
+        "path": "address.country"
+      },
+      "synonyms": [
+        "nation",
+        "country/region",
+        "which country do you live in"
+      ],
+      "strong": [
+        "country",
+        "country of residence"
+      ],
+      "negative": [
+        "country code",
+        "citizenship",
+        "birth"
+      ],
+      "priority": 85,
+      "group": "address",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "county",
+      "type": "text",
+      "value": {
+        "path": "address.county"
+      },
+      "synonyms": [],
+      "strong": [
+        "county"
+      ],
+      "negative": [],
+      "priority": 25,
+      "group": "address",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "location",
+      "type": "text",
+      "value": {
+        "compute": "location_city_state_country"
+      },
+      "synonyms": [
+        "where are you based",
+        "location (city, state)",
+        "city, state",
+        "current city and state",
+        "primary location",
+        "where do you live",
+        "location preference"
+      ],
+      "strong": [
+        "location",
+        "current location",
+        "where are you located",
+        "your location"
+      ],
+      "negative": [
+        "job location",
+        "office location",
+        "work location",
+        "preferred office"
+      ],
+      "priority": 80,
+      "group": "address",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "timezone",
+      "type": "text",
+      "value": {
+        "path": "address.timezone"
+      },
+      "synonyms": [
+        "what timezone are you in",
+        "working timezone"
+      ],
+      "strong": [
+        "time zone",
+        "timezone"
+      ],
+      "negative": [],
+      "priority": 30,
+      "group": "address",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "link_linkedin",
+      "type": "url",
+      "value": {
+        "path": "links.linkedin"
+      },
+      "synonyms": [
+        "linkedin url",
+        "linkedin profile",
+        "linkedin.com",
+        "li profile"
+      ],
+      "strong": [
+        "linkedin"
+      ],
+      "negative": [],
+      "priority": 70,
+      "group": "links",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "url"
+      ]
+    },
+    {
+      "key": "link_github",
+      "type": "url",
+      "value": {
+        "path": "links.github"
+      },
+      "synonyms": [
+        "github url",
+        "github profile",
+        "github.com",
+        "git profile"
+      ],
+      "strong": [
+        "github"
+      ],
+      "negative": [],
+      "priority": 70,
+      "group": "links",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "url"
+      ]
+    },
+    {
+      "key": "link_portfolio",
+      "type": "url",
+      "value": {
+        "path": "links.portfolio"
+      },
+      "synonyms": [
+        "portfolio url",
+        "portfolio link",
+        "personal site",
+        "portfolio/website"
+      ],
+      "strong": [
+        "portfolio"
+      ],
+      "negative": [],
+      "priority": 70,
+      "group": "links",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "url"
+      ]
+    },
+    {
+      "key": "link_website",
+      "type": "url",
+      "value": {
+        "path": "links.website"
+      },
+      "synonyms": [
+        "personal website",
+        "website url",
+        "your website",
+        "homepage",
+        "web site"
+      ],
+      "strong": [
+        "website"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "links",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "url"
+      ]
+    },
+    {
+      "key": "link_twitter",
+      "type": "url",
+      "value": {
+        "path": "links.twitter"
+      },
+      "synonyms": [
+        "twitter url",
+        "x.com",
+        "twitter handle",
+        "x profile"
+      ],
+      "strong": [
+        "twitter"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "links",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "url"
+      ]
+    },
+    {
+      "key": "link_stackoverflow",
+      "type": "url",
+      "value": {
+        "path": "links.stackoverflow"
+      },
+      "synonyms": [
+        "stackoverflow url",
+        "stack overflow profile"
+      ],
+      "strong": [
+        "stack overflow"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "links",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "url"
+      ]
+    },
+    {
+      "key": "link_dribbble",
+      "type": "url",
+      "value": {
+        "path": "links.dribbble"
+      },
+      "synonyms": [
+        "dribbble url"
+      ],
+      "strong": [
+        "dribbble"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "links",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "url"
+      ]
+    },
+    {
+      "key": "link_behance",
+      "type": "url",
+      "value": {
+        "path": "links.behance"
+      },
+      "synonyms": [
+        "behance url"
+      ],
+      "strong": [
+        "behance"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "links",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "url"
+      ]
+    },
+    {
+      "key": "link_google_scholar",
+      "type": "url",
+      "value": {
+        "path": "links.google_scholar"
+      },
+      "synonyms": [
+        "scholar profile",
+        "publications url"
+      ],
+      "strong": [
+        "google scholar"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "links",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "url"
+      ]
+    },
+    {
+      "key": "link_orcid",
+      "type": "url",
+      "value": {
+        "path": "links.orcid"
+      },
+      "synonyms": [
+        "orcid id"
+      ],
+      "strong": [
+        "orcid"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "links",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "url"
+      ]
+    },
+    {
+      "key": "link_kaggle",
+      "type": "url",
+      "value": {
+        "path": "links.kaggle"
+      },
+      "synonyms": [
+        "kaggle profile"
+      ],
+      "strong": [
+        "kaggle"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "links",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "url"
+      ]
+    },
+    {
+      "key": "link_blog",
+      "type": "url",
+      "value": {
+        "path": "links.blog"
+      },
+      "synonyms": [
+        "blog url",
+        "medium",
+        "substack",
+        "writing"
+      ],
+      "strong": [
+        "blog"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "links",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "url"
+      ]
+    },
+    {
+      "key": "link_other",
+      "type": "url",
+      "value": {
+        "path": "links.other"
+      },
+      "synonyms": [
+        "other url",
+        "other link",
+        "additional link",
+        "other profile"
+      ],
+      "strong": [
+        "other website"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "links",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": [
+        "url"
+      ]
+    },
+    {
+      "key": "work_authorized",
+      "type": "radio",
+      "value": {
+        "compute": "work_authorized"
+      },
+      "synonyms": [
+        "are you legally authorized to work in the united states",
+        "are you legally eligible to work",
+        "do you have the legal right to work",
+        "are you authorised to work",
+        "legally entitled to work",
+        "are you able to work lawfully",
+        "us work authorization"
+      ],
+      "strong": [
+        "legally authorized to work",
+        "authorized to work",
+        "work authorization",
+        "eligible to work",
+        "right to work"
+      ],
+      "negative": [
+        "sponsorship",
+        "visa sponsorship"
+      ],
+      "priority": 90,
+      "group": "authorization",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "requires_sponsorship",
+      "type": "radio",
+      "value": {
+        "compute": "requires_sponsorship"
+      },
+      "synonyms": [
+        "will you now or in the future require sponsorship",
+        "do you now or will you in the future require sponsorship",
+        "will you require visa sponsorship",
+        "require immigration sponsorship",
+        "do you require sponsorship to work",
+        "need visa support",
+        "will you require the company to commence an immigration case"
+      ],
+      "strong": [
+        "require sponsorship",
+        "need sponsorship",
+        "visa sponsorship",
+        "sponsorship"
+      ],
+      "negative": [],
+      "priority": 92,
+      "group": "authorization",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "visa_status",
+      "type": "select",
+      "value": {
+        "compute": "visa_status"
+      },
+      "synonyms": [
+        "current work authorization",
+        "what is your visa status",
+        "employment authorization",
+        "which best describes your work authorization",
+        "citizenship status"
+      ],
+      "strong": [
+        "visa status",
+        "work authorization status",
+        "immigration status"
+      ],
+      "negative": [],
+      "priority": 70,
+      "group": "authorization",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "work_permit_expiry",
+      "type": "date",
+      "value": {
+        "compute": "work_permit_expiry"
+      },
+      "synonyms": [
+        "opt end date",
+        "authorization expiration date"
+      ],
+      "strong": [
+        "work permit expiry",
+        "ead expiration",
+        "visa expiration"
+      ],
+      "negative": [],
+      "priority": 30,
+      "group": "authorization",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "permanent_resident",
+      "type": "radio",
+      "value": {
+        "compute": "permanent_resident"
+      },
+      "synonyms": [
+        "are you a permanent resident",
+        "pr status"
+      ],
+      "strong": [
+        "permanent resident"
+      ],
+      "negative": [],
+      "priority": 40,
+      "group": "authorization",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "school",
+      "type": "text",
+      "value": {
+        "compute": "school"
+      },
+      "synonyms": [
+        "name of institution",
+        "educational institution",
+        "alma mater",
+        "university/college"
+      ],
+      "strong": [
+        "school",
+        "university",
+        "college",
+        "institution",
+        "school name"
+      ],
+      "negative": [
+        "high school graduation",
+        "school district"
+      ],
+      "priority": 75,
+      "group": "education",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "degree",
+      "type": "select",
+      "value": {
+        "compute": "degree"
+      },
+      "synonyms": [
+        "level of education",
+        "highest level of education completed",
+        "qualification",
+        "degree earned",
+        "what degree"
+      ],
+      "strong": [
+        "degree",
+        "degree level",
+        "highest degree",
+        "education level"
+      ],
+      "negative": [],
+      "priority": 75,
+      "group": "education",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "field_of_study",
+      "type": "text",
+      "value": {
+        "compute": "field_of_study"
+      },
+      "synonyms": [
+        "area of study",
+        "concentration",
+        "subject",
+        "specialization",
+        "major/field of study",
+        "what did you study"
+      ],
+      "strong": [
+        "field of study",
+        "major",
+        "discipline",
+        "course of study"
+      ],
+      "negative": [
+        "minor",
+        "second major"
+      ],
+      "priority": 70,
+      "group": "education",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "minor",
+      "type": "text",
+      "value": {
+        "compute": "minor"
+      },
+      "synonyms": [
+        "secondary field of study",
+        "what was your minor"
+      ],
+      "strong": [
+        "minor",
+        "minor field of study",
+        "minor degree",
+        "academic minor",
+        "minor(s)"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "education",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "gpa",
+      "type": "text",
+      "value": {
+        "compute": "gpa"
+      },
+      "synonyms": [
+        "cgpa",
+        "gpa (out of 4.0)",
+        "academic average",
+        "percentage/gpa",
+        "final grade"
+      ],
+      "strong": [
+        "gpa",
+        "grade point average"
+      ],
+      "negative": [],
+      "priority": 50,
+      "group": "education",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "gpa_scale",
+      "type": "text",
+      "value": {
+        "compute": "gpa_scale"
+      },
+      "synonyms": [
+        "out of"
+      ],
+      "strong": [
+        "gpa scale",
+        "grading scale"
+      ],
+      "negative": [],
+      "priority": 20,
+      "group": "education",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "education_start",
+      "type": "date",
+      "value": {
+        "compute": "education_start"
+      },
+      "synonyms": [
+        "attended from",
+        "start year"
+      ],
+      "strong": [
+        "education start date",
+        "from (education)"
+      ],
+      "negative": [],
+      "priority": 40,
+      "group": "education",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "education_end",
+      "type": "date",
+      "value": {
+        "compute": "education_end"
+      },
+      "synonyms": [
+        "expected graduation",
+        "graduation year",
+        "year of graduation",
+        "completion date",
+        "to (education)",
+        "end year",
+        "date of graduation"
+      ],
+      "strong": [
+        "graduation date",
+        "education end date",
+        "degree completion date"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "education",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "currently_attending",
+      "type": "checkbox",
+      "value": {
+        "compute": "currently_attending"
+      },
+      "synonyms": [
+        "still enrolled",
+        "i currently attend this school"
+      ],
+      "strong": [
+        "currently attending"
+      ],
+      "negative": [],
+      "priority": 25,
+      "group": "education",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "current_company",
+      "type": "text",
+      "value": {
+        "compute": "current_company"
+      },
+      "synonyms": [
+        "most recent employer",
+        "company name",
+        "current organization",
+        "where do you work",
+        "present employer",
+        "org"
+      ],
+      "strong": [
+        "current company",
+        "company",
+        "employer",
+        "current employer",
+        "organization"
+      ],
+      "negative": [
+        "company size",
+        "why this company",
+        "school",
+        "reference",
+        "manager",
+        "supervisor",
+        "recruiter",
+        "referrer"
+      ],
+      "priority": 75,
+      "group": "experience",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "current_title",
+      "type": "text",
+      "value": {
+        "compute": "current_title"
+      },
+      "synonyms": [
+        "most recent title",
+        "current job title",
+        "occupation",
+        "what is your current role",
+        "present position"
+      ],
+      "strong": [
+        "current title",
+        "job title",
+        "current role",
+        "your title",
+        "position title"
+      ],
+      "negative": [
+        "job title you are applying",
+        "position applied for",
+        "desired title"
+      ],
+      "priority": 75,
+      "group": "experience",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "years_experience",
+      "type": "number",
+      "value": {
+        "compute": "years_experience"
+      },
+      "synonyms": [
+        "how many years of experience",
+        "yrs of experience",
+        "relevant experience (years)",
+        "total years of professional experience",
+        "experience in years"
+      ],
+      "strong": [
+        "years of experience",
+        "total experience",
+        "years experience"
+      ],
+      "negative": [],
+      "priority": 65,
+      "group": "experience",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "employment_start",
+      "type": "date",
+      "value": {
+        "compute": "employment_start"
+      },
+      "synonyms": [
+        "from date",
+        "date started"
+      ],
+      "strong": [
+        "employment start date",
+        "start date (employment)"
+      ],
+      "negative": [
+        "available start",
+        "earliest start"
+      ],
+      "priority": 35,
+      "group": "experience",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "employment_end",
+      "type": "date",
+      "value": {
+        "compute": "employment_end"
+      },
+      "synonyms": [
+        "to date",
+        "date ended",
+        "last day"
+      ],
+      "strong": [
+        "employment end date"
+      ],
+      "negative": [],
+      "priority": 35,
+      "group": "experience",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "reason_for_leaving",
+      "type": "textarea",
+      "value": {
+        "compute": "reason_for_leaving"
+      },
+      "synonyms": [
+        "why did you leave"
+      ],
+      "strong": [
+        "reason for leaving"
+      ],
+      "negative": [],
+      "priority": 25,
+      "group": "experience",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "may_contact_employer",
+      "type": "radio",
+      "value": {
+        "compute": "may_contact_employer"
+      },
+      "synonyms": [
+        "can we contact your current employer",
+        "ok to contact"
+      ],
+      "strong": [
+        "may we contact this employer",
+        "may we contact"
+      ],
+      "negative": [],
+      "priority": 30,
+      "group": "experience",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "supervisor_name",
+      "type": "text",
+      "value": {
+        "compute": "supervisor_name"
+      },
+      "synonyms": [
+        "reporting manager",
+        "name of your manager",
+        "direct manager"
+      ],
+      "strong": [
+        "supervisor name",
+        "supervisor",
+        "manager name",
+        "manager's name"
+      ],
+      "negative": [],
+      "priority": 20,
+      "group": "experience",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "desired_salary",
+      "type": "text",
+      "value": {
+        "compute": "desired_salary"
+      },
+      "synonyms": [
+        "what are your salary expectations",
+        "desired compensation",
+        "expected ctc",
+        "target salary",
+        "salary desired",
+        "base salary expectation",
+        "compensation requirement",
+        "what is your expected salary range",
+        "pay expectation"
+      ],
+      "strong": [
+        "desired salary",
+        "salary expectation",
+        "expected salary",
+        "compensation expectation",
+        "salary requirements"
+      ],
+      "negative": [
+        "current salary",
+        "salary history",
+        "last drawn"
+      ],
+      "priority": 70,
+      "group": "compensation",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "current_salary",
+      "type": "text",
+      "value": {
+        "compute": "current_salary"
+      },
+      "synonyms": [
+        "last drawn salary",
+        "current ctc",
+        "present salary",
+        "existing compensation"
+      ],
+      "strong": [
+        "current salary",
+        "salary history",
+        "current compensation"
+      ],
+      "negative": [],
+      "priority": 40,
+      "group": "compensation",
+      "sensitive": true,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "hourly_rate",
+      "type": "number",
+      "value": {
+        "compute": "hourly_rate"
+      },
+      "synonyms": [
+        "expected hourly rate",
+        "bill rate"
+      ],
+      "strong": [
+        "hourly rate",
+        "rate per hour"
+      ],
+      "negative": [],
+      "priority": 35,
+      "group": "compensation",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "start_date_available",
+      "type": "date",
+      "value": {
+        "compute": "earliest_start_date"
+      },
+      "synonyms": [
+        "date available to start",
+        "earliest available start date",
+        "when are you available",
+        "notice period end",
+        "available from"
+      ],
+      "strong": [
+        "available start date",
+        "earliest start date",
+        "when can you start",
+        "availability date",
+        "start date"
+      ],
+      "negative": [],
+      "priority": 70,
+      "group": "logistics",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "notice_period",
+      "type": "text",
+      "value": {
+        "compute": "notice_period"
+      },
+      "synonyms": [
+        "how much notice",
+        "notice required",
+        "current notice period"
+      ],
+      "strong": [
+        "notice period"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "logistics",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "willing_to_relocate",
+      "type": "radio",
+      "value": {
+        "compute": "willing_to_relocate"
+      },
+      "synonyms": [
+        "are you willing to relocate",
+        "would you relocate",
+        "relocation"
+      ],
+      "strong": [
+        "willing to relocate",
+        "open to relocation",
+        "relocate"
+      ],
+      "negative": [],
+      "priority": 60,
+      "group": "logistics",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "relocation_assistance",
+      "type": "radio",
+      "value": {
+        "compute": "relocation_assistance"
+      },
+      "synonyms": [
+        "do you need relocation assistance",
+        "require relocation support"
+      ],
+      "strong": [
+        "relocation assistance"
+      ],
+      "negative": [],
+      "priority": 30,
+      "group": "logistics",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "work_model_preference",
+      "type": "select",
+      "value": {
+        "compute": "work_model_preference"
+      },
+      "synonyms": [
+        "do you prefer remote",
+        "hybrid or remote",
+        "preferred work location",
+        "work location preference",
+        "office preference",
+        "onsite/hybrid/remote"
+      ],
+      "strong": [
+        "work model",
+        "remote or onsite",
+        "work preference",
+        "work arrangement"
+      ],
+      "negative": [],
+      "priority": 55,
+      "group": "logistics",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "commute_ok",
+      "type": "radio",
+      "value": {
+        "compute": "commute_ok"
+      },
+      "synonyms": [
+        "can you commute to the office",
+        "reliably commute"
+      ],
+      "strong": [
+        "able to commute",
+        "willing to commute",
+        "comfortable commuting"
+      ],
+      "negative": [],
+      "priority": 40,
+      "group": "logistics",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "willing_to_travel",
+      "type": "radio",
+      "value": {
+        "compute": "willing_to_travel"
+      },
+      "synonyms": [
+        "travel requirement",
+        "comfortable with travel"
+      ],
+      "strong": [
+        "willing to travel",
+        "able to travel"
+      ],
+      "negative": [],
+      "priority": 35,
+      "group": "logistics",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "employment_type_pref",
+      "type": "select",
+      "value": {
+        "compute": "employment_type_pref"
+      },
+      "synonyms": [
+        "full-time or part-time",
+        "contract or full time"
+      ],
+      "strong": [
+        "employment type",
+        "type of employment"
+      ],
+      "negative": [],
+      "priority": 30,
+      "group": "logistics",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "over_18",
+      "type": "radio",
+      "value": {
+        "path": "screening.over_18"
+      },
+      "synonyms": [
+        "are you 18 years or older",
+        "minimum age requirement"
+      ],
+      "strong": [
+        "are you at least 18",
+        "over 18",
+        "18 years of age"
+      ],
+      "negative": [],
+      "priority": 50,
+      "group": "screening",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "essential_functions",
+      "type": "radio",
+      "value": {
+        "path": "screening.can_perform_essential_functions"
+      },
+      "synonyms": [
+        "with or without reasonable accommodation",
+        "able to perform the duties"
+      ],
+      "strong": [
+        "essential functions",
+        "perform the essential functions"
+      ],
+      "negative": [],
+      "priority": 40,
+      "group": "screening",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "background_check",
+      "type": "radio",
+      "value": {
+        "path": "screening.consent_background_check"
+      },
+      "synonyms": [
+        "consent to a background check",
+        "willing to undergo a background check"
+      ],
+      "strong": [
+        "background check",
+        "background screening"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "screening",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "drug_test",
+      "type": "radio",
+      "value": {
+        "path": "screening.consent_drug_test"
+      },
+      "synonyms": [
+        "willing to submit to a drug test",
+        "pre-employment drug screen"
+      ],
+      "strong": [
+        "drug test",
+        "drug screening"
+      ],
+      "negative": [],
+      "priority": 40,
+      "group": "screening",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "drivers_license",
+      "type": "radio",
+      "value": {
+        "path": "screening.has_drivers_license"
+      },
+      "synonyms": [
+        "valid driver's license",
+        "do you have a license to drive"
+      ],
+      "strong": [
+        "driver's license",
+        "drivers license",
+        "driving licence"
+      ],
+      "negative": [],
+      "priority": 35,
+      "group": "screening",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "security_clearance",
+      "type": "select",
+      "value": {
+        "path": "screening.security_clearance"
+      },
+      "synonyms": [
+        "do you hold a security clearance",
+        "active clearance",
+        "what level of clearance"
+      ],
+      "strong": [
+        "security clearance",
+        "clearance level"
+      ],
+      "negative": [],
+      "priority": 40,
+      "group": "screening",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "non_compete",
+      "type": "radio",
+      "value": {
+        "path": "screening.non_compete_in_force"
+      },
+      "synonyms": [
+        "are you bound by a non-compete",
+        "restrictive covenant"
+      ],
+      "strong": [
+        "non-compete",
+        "noncompete"
+      ],
+      "negative": [],
+      "priority": 30,
+      "group": "screening",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "previously_employed",
+      "type": "radio",
+      "value": {
+        "path": "screening.previously_employed_here"
+      },
+      "synonyms": [
+        "have you ever worked for",
+        "are you a former employee",
+        "prior employment with us"
+      ],
+      "strong": [
+        "previously employed",
+        "former employee",
+        "worked here before"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "screening",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "previously_applied",
+      "type": "radio",
+      "value": {
+        "path": "screening.previously_applied_here"
+      },
+      "synonyms": [
+        "have you applied to this company before",
+        "prior application"
+      ],
+      "strong": [
+        "previously applied",
+        "applied before"
+      ],
+      "negative": [],
+      "priority": 40,
+      "group": "screening",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "related_to_employee",
+      "type": "radio",
+      "value": {
+        "path": "screening.related_to_employee"
+      },
+      "synonyms": [
+        "do you know anyone who works here",
+        "family member employed",
+        "do you have relatives working at"
+      ],
+      "strong": [
+        "related to an employee",
+        "relatives employed"
+      ],
+      "negative": [],
+      "priority": 35,
+      "group": "screening",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "criminal_history",
+      "type": "radio",
+      "value": {
+        "compute": "criminal_history"
+      },
+      "synonyms": [
+        "have you ever been convicted",
+        "criminal background",
+        "pleaded guilty"
+      ],
+      "strong": [
+        "convicted",
+        "criminal",
+        "felony",
+        "misdemeanor",
+        "criminal record"
+      ],
+      "negative": [],
+      "priority": 60,
+      "group": "screening",
+      "sensitive": true,
+      "escalate": true,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "gdpr_consent",
+      "type": "checkbox",
+      "value": {
+        "path": "screening.gdpr_consent"
+      },
+      "synonyms": [
+        "i agree to the processing of my personal data",
+        "consent to store my data",
+        "i have read and accept the privacy notice",
+        "data retention consent",
+        "i accept the terms"
+      ],
+      "strong": [
+        "privacy policy",
+        "gdpr",
+        "data processing consent",
+        "terms and conditions"
+      ],
+      "negative": [],
+      "priority": 55,
+      "group": "screening",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "future_roles_consent",
+      "type": "checkbox",
+      "value": {
+        "const": "yes"
+      },
+      "synonyms": [
+        "keep my details for other positions",
+        "add me to the talent pool"
+      ],
+      "strong": [
+        "consider me for future roles",
+        "future opportunities"
+      ],
+      "negative": [],
+      "priority": 35,
+      "group": "screening",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "marketing_opt_in",
+      "type": "checkbox",
+      "value": {
+        "path": "screening.marketing_opt_in"
+      },
+      "synonyms": [
+        "send me updates",
+        "subscribe to job alerts",
+        "receive emails about"
+      ],
+      "strong": [
+        "marketing",
+        "newsletter",
+        "promotional"
+      ],
+      "negative": [],
+      "priority": 45,
+      "group": "screening",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "eeo_gender",
+      "type": "select",
+      "value": {
+        "compute": "eeo_gender"
+      },
+      "synonyms": [
+        "what is your gender",
+        "gender identity (eeo)",
+        "please select your gender"
+      ],
+      "strong": [
+        "gender",
+        "sex"
+      ],
+      "negative": [
+        "gender identity",
+        "pronoun"
+      ],
+      "priority": 60,
+      "group": "eeo",
+      "sensitive": true,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "eeo_race",
+      "type": "select",
+      "value": {
+        "compute": "eeo_race"
+      },
+      "synonyms": [
+        "racial identity",
+        "which race or ethnicity",
+        "ethnic background",
+        "hispanic or latino"
+      ],
+      "strong": [
+        "race",
+        "ethnicity",
+        "race/ethnicity"
+      ],
+      "negative": [],
+      "priority": 60,
+      "group": "eeo",
+      "sensitive": true,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "eeo_veteran",
+      "type": "select",
+      "value": {
+        "compute": "eeo_veteran"
+      },
+      "synonyms": [
+        "are you a protected veteran",
+        "military service",
+        "veteran self-identification"
+      ],
+      "strong": [
+        "veteran",
+        "veteran status",
+        "protected veteran"
+      ],
+      "negative": [],
+      "priority": 60,
+      "group": "eeo",
+      "sensitive": true,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "eeo_disability",
+      "type": "select",
+      "value": {
+        "compute": "eeo_disability"
+      },
+      "synonyms": [
+        "do you have a disability",
+        "voluntary self-identification of disability",
+        "cc-305",
+        "form cc-305",
+        "1250-0005"
+      ],
+      "strong": [
+        "disability",
+        "disability status"
+      ],
+      "negative": [],
+      "priority": 60,
+      "group": "eeo",
+      "sensitive": true,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "eeo_name",
+      "type": "text",
+      "value": {
+        "compute": "full_name"
+      },
+      "synonyms": [
+        "name (voluntary self-identification)",
+        "employee name"
+      ],
+      "strong": [
+        "your name (cc-305)",
+        "please enter your name"
+      ],
+      "negative": [],
+      "priority": 40,
+      "group": "eeo",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "eeo_date",
+      "type": "date",
+      "value": {
+        "compute": "today"
+      },
+      "synonyms": [
+        "date signed",
+        "current date"
+      ],
+      "strong": [
+        "today's date",
+        "date (cc-305)"
+      ],
+      "negative": [],
+      "priority": 40,
+      "group": "eeo",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "uk_ethnicity",
+      "type": "select",
+      "value": {
+        "path": "eeo.uk_ethnicity"
+      },
+      "synonyms": [
+        "ons ethnicity"
+      ],
+      "strong": [
+        "ethnic group",
+        "ethnic origin"
+      ],
+      "negative": [],
+      "priority": 30,
+      "group": "eeo",
+      "sensitive": true,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "sexual_orientation",
+      "type": "select",
+      "value": {
+        "path": "eeo.sexual_orientation"
+      },
+      "synonyms": [
+        "how do you describe your sexuality"
+      ],
+      "strong": [
+        "sexual orientation"
+      ],
+      "negative": [],
+      "priority": 30,
+      "group": "eeo",
+      "sensitive": true,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "religion",
+      "type": "select",
+      "value": {
+        "path": "eeo.religion"
+      },
+      "synonyms": [
+        "faith"
+      ],
+      "strong": [
+        "religion",
+        "religious belief"
+      ],
+      "negative": [],
+      "priority": 25,
+      "group": "eeo",
+      "sensitive": true,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "gender_identity",
+      "type": "select",
+      "value": {
+        "path": "eeo.gender_identity"
+      },
+      "synonyms": [
+        "do you identify as transgender",
+        "gender identity (voluntary)"
+      ],
+      "strong": [
+        "gender identity",
+        "transgender"
+      ],
+      "negative": [],
+      "priority": 30,
+      "group": "eeo",
+      "sensitive": true,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "how_heard",
+      "type": "select",
+      "value": {
+        "compute": "how_heard"
+      },
+      "synonyms": [
+        "how did you hear about this job",
+        "where did you hear about this role",
+        "how did you learn about this opportunity",
+        "referral source",
+        "how did you find out about this position",
+        "what brought you here"
+      ],
+      "strong": [
+        "how did you hear about us",
+        "how did you find",
+        "source"
+      ],
+      "negative": [],
+      "priority": 55,
+      "group": "source",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "referrer_name",
+      "type": "text",
+      "value": {
+        "compute": "referrer_name"
+      },
+      "synonyms": [
+        "name of the person who referred you",
+        "who referred you"
+      ],
+      "strong": [
+        "referred by",
+        "referrer name",
+        "employee referral"
+      ],
+      "negative": [],
+      "priority": 40,
+      "group": "source",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "referrer_email",
+      "type": "email",
+      "value": {
+        "compute": "referrer_email"
+      },
+      "synonyms": [
+        "email of the person who referred you"
+      ],
+      "strong": [
+        "referrer email"
+      ],
+      "negative": [],
+      "priority": 30,
+      "group": "source",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "resume_file",
+      "type": "file",
+      "value": {
+        "compute": "resume_path"
+      },
+      "synonyms": [
+        "curriculum vitae",
+        "resume file",
+        "upload your cv",
+        "attach your resume",
+        "resume upload",
+        "cv upload",
+        "drop your resume"
+      ],
+      "strong": [
+        "resume",
+        "cv",
+        "resume/cv",
+        "upload resume",
+        "attach resume"
+      ],
+      "negative": [
+        "cover letter",
+        "portfolio",
+        "transcript",
+        "writing sample"
+      ],
+      "priority": 95,
+      "group": "documents",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "cover_letter_file",
+      "type": "file",
+      "value": {
+        "compute": "cover_letter_path"
+      },
+      "synonyms": [
+        "upload cover letter",
+        "attach a cover letter",
+        "motivation letter"
+      ],
+      "strong": [
+        "cover letter",
+        "covering letter"
+      ],
+      "negative": [],
+      "priority": 70,
+      "group": "documents",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "cover_letter_text",
+      "type": "textarea",
+      "value": {
+        "compute": "cover_letter_text"
+      },
+      "synonyms": [
+        "tell us why you are a good fit",
+        "message to hiring manager",
+        "additional information",
+        "paste your cover letter"
+      ],
+      "strong": [
+        "cover letter",
+        "why do you want to work"
+      ],
+      "negative": [],
+      "priority": 65,
+      "group": "documents",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "transcript_file",
+      "type": "file",
+      "value": {
+        "path": "documents.transcript"
+      },
+      "synonyms": [
+        "academic transcript",
+        "upload transcript"
+      ],
+      "strong": [
+        "transcript"
+      ],
+      "negative": [],
+      "priority": 30,
+      "group": "documents",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "portfolio_file",
+      "type": "file",
+      "value": {
+        "path": "documents.portfolio"
+      },
+      "synonyms": [
+        "upload portfolio",
+        "work samples"
+      ],
+      "strong": [
+        "portfolio file"
+      ],
+      "negative": [],
+      "priority": 30,
+      "group": "documents",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "writing_sample_file",
+      "type": "file",
+      "value": {
+        "path": "documents.writing_sample"
+      },
+      "synonyms": [
+        "upload writing sample"
+      ],
+      "strong": [
+        "writing sample"
+      ],
+      "negative": [],
+      "priority": 25,
+      "group": "documents",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "account_password",
+      "type": "password",
+      "value": {
+        "compute": "generated_password"
+      },
+      "synonyms": [
+        "choose a password",
+        "new password",
+        "account password"
+      ],
+      "strong": [
+        "password",
+        "create password"
+      ],
+      "negative": [
+        "confirm",
+        "current password",
+        "re-enter"
+      ],
+      "priority": 80,
+      "group": "account",
+      "sensitive": true,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "account_password_confirm",
+      "type": "password",
+      "value": {
+        "compute": "generated_password"
+      },
+      "synonyms": [
+        "repeat password",
+        "password confirmation"
+      ],
+      "strong": [
+        "confirm password",
+        "re-enter password",
+        "verify password",
+        "retype password"
+      ],
+      "negative": [],
+      "priority": 75,
+      "group": "account",
+      "sensitive": true,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "terms_accept",
+      "type": "checkbox",
+      "value": {
+        "const": "yes"
+      },
+      "synonyms": [
+        "accept terms and conditions",
+        "i have read and agree"
+      ],
+      "strong": [
+        "i agree to the terms",
+        "terms of use",
+        "terms of service"
+      ],
+      "negative": [],
+      "priority": 60,
+      "group": "account",
+      "sensitive": false,
+      "escalate": false,
+      "enum": "yes_no",
+      "input_types": []
+    },
+    {
+      "key": "why_company",
+      "type": "textarea",
+      "value": {
+        "compute": "essay"
+      },
+      "synonyms": [
+        "what interests you about this company",
+        "why are you interested in this company",
+        "what excites you about",
+        "why do you want to join"
+      ],
+      "strong": [
+        "why do you want to work here",
+        "why our company",
+        "why us"
+      ],
+      "negative": [],
+      "priority": 50,
+      "group": "essay",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "why_role",
+      "type": "textarea",
+      "value": {
+        "compute": "essay"
+      },
+      "synonyms": [
+        "what interests you about this role",
+        "why are you a good fit for this role",
+        "what makes you a strong candidate"
+      ],
+      "strong": [
+        "why this role",
+        "why are you interested in this position"
+      ],
+      "negative": [],
+      "priority": 50,
+      "group": "essay",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    },
+    {
+      "key": "additional_info",
+      "type": "textarea",
+      "value": {
+        "compute": "essay"
+      },
+      "synonyms": [
+        "is there anything else you would like us to know",
+        "other comments",
+        "notes"
+      ],
+      "strong": [
+        "additional information",
+        "anything else"
+      ],
+      "negative": [],
+      "priority": 35,
+      "group": "essay",
+      "sensitive": false,
+      "escalate": false,
+      "enum": null,
+      "input_types": []
+    }
+  ],
+  "option_synonyms": {
+    "yes": [
+      "yes",
+      "y",
+      "true",
+      "yes i am",
+      "i am",
+      "i do",
+      "i have",
+      "affirmative",
+      "yes - i am",
+      "yes, i am",
+      "yes i do",
+      "agree",
+      "i agree",
+      "accept",
+      "confirmed"
+    ],
+    "no": [
+      "no",
+      "n",
+      "false",
+      "no i am not",
+      "i am not",
+      "i do not",
+      "i don't",
+      "i have not",
+      "negative",
+      "no - i am not",
+      "no, i am not",
+      "decline",
+      "disagree"
+    ],
+    "decline": [
+      "decline to self identify",
+      "decline to self-identify",
+      "i don't wish to answer",
+      "i do not want to answer",
+      "prefer not to say",
+      "prefer not to answer",
+      "choose not to disclose",
+      "not specified",
+      "i decline to answer",
+      "do not wish to disclose",
+      "prefer not to disclose",
+      "n/a"
+    ]
+  },
+  "enum_maps": {
+    "yes_no": {
+      "yes": [
+        "yes"
+      ],
+      "no": [
+        "no"
+      ],
+      "prefer_not_to_say": [
+        "decline"
+      ]
+    }
+  },
+  "sensitive_never_fill": [
+    "social security",
+    "ssn",
+    "national insurance number",
+    "passport number",
+    "date of birth",
+    "driver's license number",
+    "bank account",
+    "routing number",
+    "credit card",
+    "mother's maiden",
+    "aadhaar",
+    "pan number",
+    "tax id"
+  ],
+  "human_required_signals": [
+    "captcha",
+    "recaptcha",
+    "hcaptcha",
+    "verify you are human",
+    "i'm not a robot",
+    "two-factor",
+    "verification code",
+    "one-time code",
+    "hirevue",
+    "hackerrank",
+    "codility",
+    "codesignal",
+    "assessment invitation",
+    "video interview"
+  ]
+}

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Wrapper</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+</head>
+<body>
+<div id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">JW</div>
+      <div><h1>Job Wrapper</h1><small>local · private</small></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="foot">
+      <div class="ring" title="Profile completeness">
+        <span id="pct">0%</span>
+        <span class="bar"><i id="pctbar" style="width:0%"></i></span>
+      </div>
+      <button class="btn sm ghost" id="theme-toggle">Switch theme</button>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div><h2 id="title">Dashboard</h2><div class="sub" id="subtitle"></div></div>
+      <div class="spacer"></div>
+      <div id="actions"></div>
+    </header>
+    <section class="content" id="view"></section>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script src="/form.js"></script>
+<script src="/views.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

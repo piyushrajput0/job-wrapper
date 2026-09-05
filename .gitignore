@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+build/
+dist/
+
+# tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# runtime data - never commit a real profile, vault or application history
+.jobwrapper/
+*.db
+*.db-wal
+*.db-shm
+vault.enc
+profile.json
+master_resume.json
+config.yaml
+applications.csv
+
+# artifacts
+*.pdf
+!docs/**/*.pdf
+screenshots/
+.DS_Store

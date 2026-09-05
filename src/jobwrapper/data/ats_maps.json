@@ -1,0 +1,364 @@
+{
+  "version": 2,
+  "note": "Per-ATS detection signatures and direct name/id -> catalog-key maps. Shared by the Python (Playwright) and JS (extension) resolvers; a hit here is the highest-confidence resolution path.",
+  "ats": {
+    "greenhouse": {
+      "label": "Greenhouse",
+      "detect": {
+        "url": ["boards.greenhouse.io", "job-boards.greenhouse.io", "greenhouse.io/embed/job_app", "my.greenhouse.io"],
+        "dom": ["#grnhse_app", "#grnhse_iframe", "form#application_form", "#application-form", "[id^='job_application']"],
+        "text": ["Powered by Greenhouse"]
+      },
+      "iframe": "#grnhse_iframe",
+      "name_map": {
+        "first_name": "first_name",
+        "job_application[first_name]": "first_name",
+        "last_name": "last_name",
+        "job_application[last_name]": "last_name",
+        "email": "email",
+        "job_application[email]": "email",
+        "phone": "phone",
+        "job_application[phone]": "phone",
+        "job_application[location]": "location",
+        "resume": "resume_file",
+        "job_application[resume]": "resume_file",
+        "cover_letter": "cover_letter_file",
+        "job_application[cover_letter]": "cover_letter_file",
+        "job_application[company]": "current_company",
+        "job_application[urls][LinkedIn]": "link_linkedin",
+        "job_application[urls][GitHub]": "link_github",
+        "job_application[urls][Portfolio]": "link_portfolio",
+        "job_application[eeoc_gender]": "eeo_gender",
+        "job_application[eeoc_race]": "eeo_race",
+        "job_application[eeoc_veteran_status]": "eeo_veteran",
+        "job_application[eeoc_disability_status]": "eeo_disability",
+        "gender": "eeo_gender",
+        "race": "eeo_race",
+        "veteran_status": "eeo_veteran",
+        "disability_status": "eeo_disability"
+      },
+      "id_map": {
+        "first_name": "first_name",
+        "last_name": "last_name",
+        "email": "email",
+        "phone": "phone",
+        "resume": "resume_file",
+        "cover_letter": "cover_letter_file",
+        "job_application_location": "location"
+      },
+      "file_inputs": {
+        "resume_file": "input[type=file][name*='resume'], input[type=file]#resume, [data-field='resume'] input[type=file]",
+        "cover_letter_file": "input[type=file][name*='cover'], input[type=file]#cover_letter"
+      },
+      "autocomplete_fields": ["location"],
+      "submit": ["#submit_app", "input[type=submit][value*='Submit']", "button[type=submit]", "button:has-text('Submit Application')"],
+      "success_text": ["thank you for applying", "your application has been submitted", "application received", "thanks for applying"],
+      "duplicate_text": ["you have already applied", "already submitted an application"],
+      "quirks": [
+        "Location is a Google Places autocomplete: type, wait for the listbox, click a suggestion.",
+        "File inputs are visually hidden behind a styled button; set files on the input directly.",
+        "The whole form may live inside #grnhse_iframe on a company-hosted page.",
+        "Custom questions are named question_<id> or job_application_answers_attributes_<n>_*."
+      ]
+    },
+    "lever": {
+      "label": "Lever",
+      "detect": {
+        "url": ["jobs.lever.co", "hire.lever.co"],
+        "dom": ["form.application-form", ".application-page", "[data-qa='application-form']"],
+        "text": ["Powered by Lever"]
+      },
+      "name_map": {
+        "name": "full_name",
+        "email": "email",
+        "phone": "phone",
+        "org": "current_company",
+        "resume": "resume_file",
+        "urls[LinkedIn]": "link_linkedin",
+        "urls[Github]": "link_github",
+        "urls[GitHub]": "link_github",
+        "urls[Portfolio]": "link_portfolio",
+        "urls[Twitter]": "link_twitter",
+        "urls[Other]": "link_other",
+        "comments": "additional_info",
+        "eeo[gender]": "eeo_gender",
+        "eeo[race]": "eeo_race",
+        "eeo[veteran]": "eeo_veteran",
+        "eeo[disability]": "eeo_disability",
+        "eeo[disabilitySignature]": "eeo_name",
+        "eeo[disabilitySignatureDate]": "eeo_date",
+        "location": "location",
+        "selectedLocation": "location"
+      },
+      "id_map": {},
+      "file_inputs": {
+        "resume_file": "input[type=file][name='resume'], input[type=file]#resume-upload-input"
+      },
+      "submit": ["button[type=submit]", "#btn-submit", "button:has-text('Submit application')"],
+      "success_text": ["thank you for applying", "application submitted", "we have received your application"],
+      "duplicate_text": ["already applied"],
+      "quirks": [
+        "Single 'name' field - use the profile display name, not first/last.",
+        "Custom questions are cards[<cardId>][<fieldName>]; the human-readable label is the sibling text.",
+        "Radio groups carry the option text in the adjacent label element."
+      ]
+    },
+    "ashby": {
+      "label": "Ashby",
+      "detect": {
+        "url": ["jobs.ashbyhq.com", "ashbyhq.com/embed"],
+        "dom": ["._container_", "[class*='ashby-application-form']", "#ashby_embed"],
+        "text": ["Powered by Ashby"]
+      },
+      "name_map": {
+        "_systemfield_name": "full_name",
+        "_systemfield_email": "email",
+        "_systemfield_phone": "phone",
+        "_systemfield_resume": "resume_file",
+        "_systemfield_location": "location"
+      },
+      "id_map": {},
+      "file_inputs": {
+        "resume_file": "input[type=file]"
+      },
+      "submit": ["button[type=submit]", "button:has-text('Submit Application')"],
+      "success_text": ["thank you", "application submitted", "we received your application"],
+      "duplicate_text": ["already applied"],
+      "quirks": [
+        "React-controlled: values must be typed through real events, not assigned to .value.",
+        "Fields key off _fieldEntryId; labels are the only stable human-readable anchor.",
+        "File upload is a drop zone wrapping a hidden input[type=file]."
+      ]
+    },
+    "workable": {
+      "label": "Workable",
+      "detect": {
+        "url": ["apply.workable.com", "workable.com/j/"],
+        "dom": ["[data-ui='application-form']", "[data-ui='firstname']"],
+        "text": ["Powered by Workable"]
+      },
+      "name_map": {
+        "firstname": "first_name",
+        "lastname": "last_name",
+        "email": "email",
+        "phone": "phone",
+        "resume": "resume_file",
+        "cover_letter": "cover_letter_text",
+        "address": "address_line1",
+        "summary": "additional_info"
+      },
+      "attribute_map": {
+        "data-ui": {
+          "firstname": "first_name",
+          "lastname": "last_name",
+          "email": "email",
+          "phone": "phone",
+          "resume": "resume_file",
+          "cover-letter": "cover_letter_text",
+          "address": "address_line1",
+          "linkedin-url": "link_linkedin",
+          "github-url": "link_github"
+        }
+      },
+      "file_inputs": {"resume_file": "input[type=file]"},
+      "submit": ["button[type=submit]", "[data-ui='submit-application']"],
+      "success_text": ["thank you for applying", "application submitted"],
+      "duplicate_text": ["already applied"],
+      "quirks": ["data-ui attributes are the stable hooks; name attributes vary by tenant."]
+    },
+    "smartrecruiters": {
+      "label": "SmartRecruiters",
+      "detect": {
+        "url": ["jobs.smartrecruiters.com", "careers.smartrecruiters.com", "smartrecruiters.com/job"],
+        "dom": ["#application-form", "[data-test='application-form']"],
+        "text": ["Powered by SmartRecruiters"]
+      },
+      "name_map": {
+        "firstName": "first_name",
+        "lastName": "last_name",
+        "email": "email",
+        "phoneNumber": "phone",
+        "location.city": "city",
+        "location.country": "country",
+        "web.linkedin": "link_linkedin",
+        "web.github": "link_github",
+        "web.website": "link_website"
+      },
+      "id_map": {
+        "firstName": "first_name",
+        "lastName": "last_name",
+        "email": "email",
+        "phoneNumber": "phone"
+      },
+      "file_inputs": {"resume_file": "input[type=file]"},
+      "submit": ["button[type=submit]", "#js-application-submit-button"],
+      "success_text": ["thank you", "application received"],
+      "duplicate_text": ["already applied"],
+      "quirks": ["Offers a LinkedIn/Indeed import bar - dismiss it before filling."]
+    },
+    "workday": {
+      "label": "Workday",
+      "detect": {
+        "url": ["myworkdayjobs.com", "wd1.myworkday", "wd3.myworkday", "wd5.myworkday"],
+        "dom": ["[data-automation-id='jobPostingHeader']", "[data-automation-id='applyFlowContainer']", "[data-automation-id='legalNameSection']"],
+        "text": ["Workday"]
+      },
+      "requires_account": true,
+      "automation_id_map": {
+        "legalNameSection_firstName": "first_name",
+        "legalNameSection_middleName": "middle_name",
+        "legalNameSection_lastName": "last_name",
+        "email": "email",
+        "verifyEmail": "email_confirm",
+        "password": "account_password",
+        "verifyPassword": "account_password_confirm",
+        "addressSection_addressLine1": "address_line1",
+        "addressSection_addressLine2": "address_line2",
+        "addressSection_city": "city",
+        "addressSection_countryRegion": "state",
+        "addressSection_postalCode": "postal_code",
+        "countryDropdown": "country",
+        "country": "country",
+        "phone-device-type": "phone_device_type",
+        "country-phone-code": "phone_country_code",
+        "phone-number": "phone",
+        "phoneNumber": "phone",
+        "school": "school",
+        "degree": "degree",
+        "fieldOfStudy": "field_of_study",
+        "gpa": "gpa",
+        "firstYearAttended": "education_start",
+        "lastYearAttended": "education_end",
+        "jobTitle": "current_title",
+        "company": "current_company",
+        "location": "location",
+        "sourceSection": "how_heard",
+        "source": "how_heard",
+        "gender": "eeo_gender",
+        "ethnicity": "eeo_race",
+        "veteranStatus": "eeo_veteran",
+        "disability": "eeo_disability",
+        "selfIdentifiedDisabilityData--name": "eeo_name",
+        "dateSectionMonth-input": "eeo_date",
+        "createAccountCheckbox": "terms_accept",
+        "resumeUpload": "resume_file",
+        "file-upload-input-ref": "resume_file"
+      },
+      "file_inputs": {"resume_file": "input[data-automation-id='file-upload-input-ref']"},
+      "next": ["[data-automation-id='bottom-navigation-next-button']", "[data-automation-id='pageFooterNextButton']", "button:has-text('Save and Continue')"],
+      "submit": ["[data-automation-id='bottom-navigation-next-button']", "button:has-text('Submit')"],
+      "success_text": ["you have successfully submitted", "thank you for applying", "application submitted"],
+      "duplicate_text": ["you have already applied", "already submitted"],
+      "steps": ["Start", "My Information", "My Experience", "Application Questions", "Voluntary Disclosures", "Self Identify", "Review"],
+      "quirks": [
+        "Requires an account: sign in, else register (email + generated password).",
+        "Every dropdown is a custom listbox: click the button, wait for [role=option], click the option.",
+        "'Autofill with Resume' half-populates My Experience; verify rather than overwrite.",
+        "Phone country code is a separate required listbox.",
+        "Session times out after roughly 15 minutes of inactivity."
+      ]
+    },
+    "icims": {
+      "label": "iCIMS",
+      "detect": {
+        "url": ["icims.com", "careers-"],
+        "dom": ["#icims_content_iframe", ".iCIMS_MainWrapper", "#icims_mainWrapper"],
+        "text": ["iCIMS"]
+      },
+      "iframe": "#icims_content_iframe",
+      "name_map": {},
+      "file_inputs": {"resume_file": "input[type=file]"},
+      "submit": ["input[value*='Submit']", "button:has-text('Submit')", "#quickApplyBtn"],
+      "success_text": ["thank you for your interest", "application received"],
+      "duplicate_text": ["already applied"],
+      "quirks": ["Deeply iframe-nested; resolve fields inside #icims_content_iframe."]
+    },
+    "taleo": {
+      "label": "Taleo",
+      "assisted_only": true,
+      "detect": {
+        "url": ["taleo.net", "tbe.taleo.net"],
+        "dom": ["#requisitionDescriptionInterface", ".taleoform"],
+        "text": ["Taleo"]
+      },
+      "name_map": {},
+      "submit": ["input[value*='Submit']"],
+      "success_text": ["thank you"],
+      "quirks": ["Legacy frameset markup, aggressive session validation - human drives, tool advises."]
+    },
+    "successfactors": {
+      "label": "SAP SuccessFactors",
+      "detect": {
+        "url": ["successfactors.com", "career5.successfactors", "jobs.sap.com"],
+        "dom": [".jobDetail", "#careerSiteApplyButton"],
+        "text": ["SuccessFactors"]
+      },
+      "name_map": {},
+      "submit": ["button:has-text('Submit')"],
+      "success_text": ["thank you"],
+      "quirks": ["Requires an account on most tenants."]
+    },
+    "jobvite": {
+      "label": "Jobvite",
+      "detect": {"url": ["jobs.jobvite.com", "jobvite.com/careers"], "dom": [".jv-page-apply", "#jv-careersite"], "text": ["Powered by Jobvite"]},
+      "name_map": {
+        "firstName": "first_name",
+        "lastName": "last_name",
+        "email": "email",
+        "phone": "phone",
+        "resume": "resume_file"
+      },
+      "file_inputs": {"resume_file": "input[type=file]"},
+      "submit": ["input[type=submit]", "button:has-text('Send Application')"],
+      "success_text": ["thank you"],
+      "quirks": []
+    },
+    "bamboohr": {
+      "label": "BambooHR",
+      "detect": {"url": ["bamboohr.com/jobs", "bamboohr.co.uk/jobs"], "dom": ["#BambooHR-ATS", ".BambooHR-ATS-board"], "text": ["Powered by BambooHR"]},
+      "name_map": {
+        "firstName": "first_name",
+        "lastName": "last_name",
+        "email": "email",
+        "phone": "phone",
+        "resume": "resume_file",
+        "address": "address_line1",
+        "city": "city",
+        "state": "state",
+        "zip": "postal_code",
+        "linkedinUrl": "link_linkedin",
+        "websiteUrl": "link_website"
+      },
+      "file_inputs": {"resume_file": "input[type=file]"},
+      "submit": ["button[type=submit]", "button:has-text('Submit Application')"],
+      "success_text": ["thank you", "application submitted"],
+      "quirks": []
+    },
+    "recruitee": {
+      "label": "Recruitee",
+      "detect": {"url": ["recruitee.com"], "dom": [".c-application-form", "#offer-form"], "text": ["Powered by Recruitee"]},
+      "name_map": {
+        "candidate[name]": "full_name",
+        "candidate[email]": "email",
+        "candidate[phone]": "phone",
+        "candidate[cover_letter]": "cover_letter_text",
+        "candidate[photo]": "",
+        "candidate[cv]": "resume_file"
+      },
+      "file_inputs": {"resume_file": "input[type=file]"},
+      "submit": ["button[type=submit]"],
+      "success_text": ["thank you"],
+      "quirks": []
+    },
+    "generic": {
+      "label": "Generic career site",
+      "detect": {"url": [], "dom": ["form"], "text": []},
+      "name_map": {},
+      "file_inputs": {"resume_file": "input[type=file]"},
+      "submit": ["button[type=submit]", "input[type=submit]", "button:has-text('Submit')", "button:has-text('Apply')", "button:has-text('Send application')"],
+      "success_text": ["thank you for applying", "application submitted", "application received", "we have received your application", "thanks for your interest"],
+      "duplicate_text": ["already applied", "duplicate application"],
+      "quirks": ["Resolution is entirely label-driven; this is the V2 default."]
+    }
+  }
+}

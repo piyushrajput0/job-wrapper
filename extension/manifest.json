@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Job Wrapper",
+  "version": "0.1.0",
+  "description": "Tailor your resume and fill any company's application form, on the career site you are already on.",
+  "permissions": ["storage", "activeTab", "scripting", "downloads"],
+  "host_permissions": ["http://127.0.0.1/*", "http://localhost/*"],
+  "optional_host_permissions": ["https://*/*"],
+  "background": { "service_worker": "background/service_worker.js", "type": "module" },
+  "action": { "default_popup": "popup/popup.html", "default_title": "Job Wrapper" },
+  "options_page": "options/options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://*/*"],
+      "js": ["shared/util.js", "shared/storage.js", "shared/api.js", "shared/catalog.js",
+             "shared/resolver.js", "content/detect.js", "content/panel.js", "content/autofill.js",
+             "content/main.js"],
+      "css": ["content/panel.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    { "resources": ["shared/data/*"], "matches": ["https://*/*"] }
+  ],
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+}

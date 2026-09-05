@@ -1,0 +1,43 @@
+\documentclass[10pt]{article}
+\usepackage{hyperref}
+\begin{document}
+{\Huge Alex Rivera}\\
+alex.rivera@example.com $\cdot$ (415) 555-0142 $\cdot$ San Francisco, CA\\
+\href{https://linkedin.com/in/alexrivera}{LinkedIn} $\cdot$ \href{https://github.com/alexrivera}{GitHub}
+
+\section{Summary}
+Backend engineer focused on distributed systems and developer platforms.
+
+\section{Skills}
+Languages: Python, Go, TypeScript, SQL\\
+Infrastructure: AWS, Docker, Kubernetes, Terraform, PostgreSQL, Redis, Kafka\\
+Practices: CI/CD, System Design, Unit Testing, Mentoring
+
+\section{Experience}
+\resumeSubheading{Senior Software Engineer}{Jan 2022 - Present}{Northwind Data}{San Francisco, CA}
+\begin{itemize}
+  \item Built a multi-region ingestion service in Go handling 40k events per second.
+  \item Cut p99 API latency from 850ms to 120ms by adding a Redis read-through cache.
+  \item Led migration of 30 services from EC2 to Kubernetes with zero downtime.
+  \item Mentored 4 engineers and ran the team's design review process.
+\end{itemize}
+
+\resumeSubheading{Software Engineer}{Jun 2019 - Dec 2021}{Blue Harbor}{Oakland, CA}
+\begin{itemize}
+  \item Designed a PostgreSQL schema supporting 12 million daily rows.
+  \item Automated the release pipeline with GitHub Actions, cutting deploy time by 70\%.
+  \item Wrote the Python SDK used by 200 internal developers.
+\end{itemize}
+
+\section{Projects}
+\resumeProjectHeading{Ledgerly}{Python, FastAPI, PostgreSQL}
+\begin{itemize}
+  \item Open-source double-entry accounting API with 900 GitHub stars.
+\end{itemize}
+
+\section{Education}
+\resumeSubheading{University of California, Berkeley}{Aug 2015 - May 2019}{Bachelor of Science in Computer Science}{Berkeley, CA}
+\begin{itemize}
+  \item Minor in Applied Mathematics. GPA: 3.7
+\end{itemize}
+\end{document}
