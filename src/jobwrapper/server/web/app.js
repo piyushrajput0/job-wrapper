@@ -314,6 +314,16 @@
         start.disabled = false; start.textContent = "Start run";
       }
     };
+    const install = el("ap-install-browser");
+    if (install) install.onclick = async () => {
+      install.disabled = true;
+      install.innerHTML = '<span class="spin"></span> Downloading';
+      const task = await api.post("/api/setup/browser", {});
+      const done = await pollTask(task.id, "Browser download");
+      if (done?.result?.ok) { toast("Browser installed", "good"); render(); }
+      else { install.disabled = false; install.textContent = "Try again"; }
+    };
+
     const stop = el("ap-stop");
     if (stop) stop.onclick = async () => {
       await api.post("/api/autopilot/stop", {});

@@ -101,6 +101,15 @@ def require_token(request: Request, app_state: AppState = Depends(get_state)) ->
         raise HTTPException(status_code=401, detail="invalid or missing extension token")
 
 
+def _chromium_ready() -> bool:
+    try:
+        from ..apply.browser import chromium_installed
+
+        return chromium_installed()
+    except Exception:
+        return False
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="Job Wrapper", version="0.1.0", docs_url="/api/docs")
     app.add_middleware(
@@ -125,6 +134,8 @@ def create_app() -> FastAPI:
             "autonomy": s.config.apply.autonomy,
             "llm": {"enabled": s.config.llm.enabled, "available": s.llm.available(),
                     "model": s.config.llm.model, "usage": s.llm.tracker.summary()},
+            "browser": {"ready": _chromium_ready(),
+                        "hint": "Job Wrapper drives a real browser to fill applications."},
             "resume": {"master_loaded": bool(s.master.experience),
                        "roles": len(s.master.experience),
                        "latex_engines": available_engines() or ["html (chromium)"]},
@@ -249,6 +260,23 @@ def create_app() -> FastAPI:
                     "cost_usd": round(s.llm.cost_so_far(), 5)}
         except Exception as exc:
             return {"ok": False, "error": str(exc)[:300]}
+
+    @app.post("/api/setup/browser")
+    def install_browser() -> dict[str, Any]:
+        """Download the browser from inside the app - a packaged user has no terminal."""
+        from ..apply.browser import install_chromium
+
+        if registry.running("browser-setup"):
+            raise HTTPException(status_code=409, detail="already downloading")
+
+        def run(task: Any) -> dict[str, Any]:
+            task.emit({"stage": "setup", "message": "downloading the browser (about 150 MB)…"})
+            ok, output = install_chromium()
+            task.emit({"stage": "setup",
+                       "message": "browser ready" if ok else f"failed: {output[-160:]}"})
+            return {"ok": ok, "output": output}
+
+        return registry.start("browser-setup", run).as_dict()
 
     # ------------------------------------------------------------------ autopilot
     @app.post("/api/autopilot")

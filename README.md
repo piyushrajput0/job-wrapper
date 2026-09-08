@@ -47,6 +47,27 @@ or from the deterministic ranker.
 
 ---
 
+## Run it as an app
+
+```bash
+uv run jobwrapper app        # native window, no terminal, no browser tab
+```
+
+Or build a real macOS application you can keep in the Dock:
+
+```bash
+uv sync --extra desktop
+uv run python scripts/build_app.py
+mv "dist/Job Wrapper.app" /Applications/
+```
+
+Double-click it and the window opens: the server runs inside the app on a private port, and
+closing the window shuts everything down. The browser it uses to fill applications is not
+bundled (it is ~150 MB and updates on its own schedule) — the app detects that on first run and
+offers to fetch it with one click.
+
+<img alt="Job Wrapper running as a desktop app" src="docs/img/app-window.png" width="820">
+
 ## Install
 
 Requires Python 3.11+. [uv](https://docs.astral.sh/uv/) is the easy path.
@@ -211,7 +232,7 @@ page you opened yourself. See [`docs/06-COMPLIANCE.md`](docs/06-COMPLIANCE.md).
 ## Commands
 
 ```
-jobwrapper init | ui | doctor | profile | key
+jobwrapper app | init | ui | doctor | profile | key
 jobwrapper run [--limit N] [--autonomy review|auto|dryrun] [--no-search] [--no-overleaf]
 jobwrapper search [--source ID] | list [--min-score N] | show <job-id>
 jobwrapper apply [--job ID] [--limit N] [--autonomy dryrun|review|auto]

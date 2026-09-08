@@ -92,6 +92,15 @@ def ui(port: int | None = typer.Option(None), host: str | None = typer.Option(No
     serve(host=host, port=port)
 
 
+@app.command("app")
+def desktop_app(port: int | None = typer.Option(None, help="Pin the local port")):
+    """Open Job Wrapper as a desktop window (no terminal, no browser tab)."""
+    setup()
+    from .desktop import run as run_desktop
+
+    raise typer.Exit(run_desktop(port=port))
+
+
 @app.command()
 def doctor():
     """Check the environment: browsers, LaTeX, model access, profile completeness."""

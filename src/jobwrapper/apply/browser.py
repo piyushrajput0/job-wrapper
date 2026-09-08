@@ -8,6 +8,8 @@ automated, the correct response is to hand the browser to the human, which is wh
 
 from __future__ import annotations
 
+import os
+import subprocess
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -29,6 +31,36 @@ COOKIE_BUTTON_TEXTS = [
     "reject non-essential", "deny", "decline", "accept necessary",
 ]
 COOKIE_FALLBACK_TEXTS = ["accept all", "accept cookies", "i agree", "got it", "ok"]
+
+
+def chromium_installed() -> bool:
+    """Is a browser actually on disk? Packaged apps ship without one."""
+    from pathlib import Path as _Path
+
+    roots = [_Path.home() / "Library" / "Caches" / "ms-playwright",
+             _Path.home() / ".cache" / "ms-playwright",
+             _Path(os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "/nonexistent"))]
+    return any(child.is_dir() for root in roots if root.exists()
+               for child in root.glob("chromium*"))
+
+
+def install_chromium() -> tuple[bool, str]:
+    """Fetch the browser via Playwright's own driver.
+
+    Works inside a PyInstaller bundle, where sys.executable is the app rather than python and
+    `python -m playwright install` is therefore not available.
+    """
+    try:
+        from playwright._impl._driver import compute_driver_executable
+
+        driver = compute_driver_executable()
+        command = [str(driver)] if isinstance(driver, (str, os.PathLike)) else list(driver)
+        result = subprocess.run([*command, "install", "chromium"],
+                                capture_output=True, text=True, timeout=900)
+        ok = result.returncode == 0 and chromium_installed()
+        return ok, (result.stdout + result.stderr)[-600:]
+    except Exception as exc:
+        return False, str(exc)[:300]
 
 
 @dataclass

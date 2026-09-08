@@ -224,3 +224,17 @@ def test_cover_letter_renders_as_a_document(profile):
     assert "<p>First paragraph.</p>" in html and "<p>Second paragraph.</p>" in html
     assert "Alex Rivera" in html and "Vector Labs" in html
     assert "alex.rivera@example.com" in html
+
+
+def test_status_reports_whether_a_browser_is_available(client):
+    """A packaged app ships without a browser; the UI has to know so it can offer to fetch one."""
+    payload = client.get("/api/status").json()
+    assert "browser" in payload and isinstance(payload["browser"]["ready"], bool)
+
+
+def test_desktop_picks_a_free_port_and_a_landing_route():
+    from jobwrapper.desktop import free_port, landing_route
+
+    first, second = free_port(), free_port()
+    assert 1024 < first < 65536 and 1024 < second < 65536
+    assert landing_route() in {"#/profile", "#/autopilot"}

@@ -33,6 +33,10 @@ const Views = (() => {
         through the best matches <b>one at a time</b> — reading each job description, rewriting your
         résumé around its keywords, compiling a PDF for that job, and filling the application with it.</div>
       ${blocked ? `<div class="banner">${blocked}</div>` : ""}
+      ${!status.browser?.ready ? `<div class="banner">
+        Job Wrapper fills applications by driving a real browser, and one is not installed yet.
+        <button class="btn sm primary" id="ap-install-browser" style="margin-left:8px">Install it (~150 MB)</button>
+        <span class="muted" id="ap-browser-state"></span></div>` : ""}
       ${!secrets.anthropic.usable ? `<div class="banner">No Claude API key yet — tailoring will use
         the deterministic ranker. Paste a key in <a href="#/settings">Settings</a> to switch it on.</div>` : ""}
       <div class="form-grid">
