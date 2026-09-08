@@ -46,6 +46,7 @@ class FieldDescriptor(BaseModel):
 
 class FilledField(BaseModel):
     selector: str = ""
+    frame: str = ""          # which frame the control lives in ("" = the main document)
     field_key: str = ""
     question: str = ""
     value: str = ""

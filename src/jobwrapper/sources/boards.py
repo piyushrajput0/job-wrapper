@@ -54,11 +54,16 @@ class Greenhouse(JobSource):
     kind = "greenhouse"
     label = "Greenhouse"
 
+    def api_host(self) -> str:
+        return ("https://boards-api.eu.greenhouse.io"
+                if str(self.param("region", "")).lower() in {"eu", "europe"}
+                else "https://boards-api.greenhouse.io")
+
     def fetch(self) -> Iterable[Job]:
         for board in _boards(self):
             token = board["token"]
             data = self.http.get_json(
-                f"https://boards-api.greenhouse.io/v1/boards/{token}/jobs",
+                f"{self.api_host()}/v1/boards/{token}/jobs",
                 params={"content": "true"})
             for row in (data or {}).get("jobs", []):
                 content = html_to_text(row.get("content", ""))
@@ -88,7 +93,7 @@ class Greenhouse(JobSource):
     def application_questions(self, token: str, job_id: str) -> list[dict[str, Any]]:
         """Greenhouse publishes the application's own field definitions. Free fill plan."""
         data = self.http.get_json(
-            f"https://boards-api.greenhouse.io/v1/boards/{token}/jobs/{job_id}",
+            f"{self.api_host()}/v1/boards/{token}/jobs/{job_id}",
             params={"questions": "true"})
         return (data or {}).get("questions", []) or []
 
@@ -337,11 +342,20 @@ class Breezy(JobSource):
     label = "Breezy HR"
 
     def fetch(self) -> Iterable[Job]:
+        # Breezy's board feed has no description at all - it only lives on the posting page,
+        # which is HTML. Fetch it (capped) unless the user turns it off.
+        fetch_details = bool(self.param("fetch_details", True))
+        detail_cap = int(self.param("detail_cap", 60))
+        fetched = 0
+
         for board in _boards(self):
             company = board["token"]
             rows = self.http.get_json(f"https://{company}.breezy.hr/json")
             for row in rows or []:
                 description = html_to_text(row.get("description", ""))
+                if not description and fetch_details and fetched < detail_cap and row.get("url"):
+                    fetched += 1
+                    description = self._description_from_page(row["url"])
                 location = row.get("location") or {}
                 job = Job(
                     source="breezy",
@@ -360,6 +374,30 @@ class Breezy(JobSource):
                     employment_type=(row.get("type") or {}).get("name", ""),
                 )
                 yield _finish(job)
+
+    def _description_from_page(self, url: str) -> str:
+        """JSON-LD first (Breezy embeds a JobPosting), then the raw page text."""
+        response = self.http.get(url)
+        if response is None:
+            return ""
+        import json as _json
+        import re as _re
+
+        for block in _re.findall(
+                r'<script[^>]+type="application/ld\+json"[^>]*>(.*?)</script>', response.text,
+                _re.S):
+            try:
+                payload = _json.loads(block)
+            except Exception:
+                continue
+            candidates = payload if isinstance(payload, list) else [payload]
+            for item in candidates:
+                if isinstance(item, dict) and item.get("@type") == "JobPosting":
+                    text = html_to_text(item.get("description", ""))
+                    if text:
+                        return text
+        body = _re.search(r"<body[^>]*>(.*)</body>", response.text, _re.S)
+        return html_to_text(body.group(1))[:20000] if body else ""
 
 
 class Workday(JobSource):

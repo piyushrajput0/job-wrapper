@@ -119,7 +119,8 @@ class AnswerEngine:
             action = ("select" if descriptor.options else
                       "check" if descriptor.input_type == "checkbox" else "fill")
             filled.append(FilledField(
-                selector=descriptor.selector, field_key=item.catalog_key or "llm_answer",
+                selector=descriptor.selector, frame=descriptor.frame,
+                field_key=item.catalog_key or "llm_answer",
                 question=descriptor.question_text(), value=value, method="llm",
                 confidence=item.confidence, action=action,
                 needs_review=item.confidence < 0.8))
@@ -145,7 +146,8 @@ class AnswerEngine:
                                                     "tell us", "motivat")):
                 text = self.template_cover_letter(job)
                 filled.append(FilledField(
-                    selector=descriptor.selector, field_key="cover_letter_text",
+                    selector=descriptor.selector, frame=descriptor.frame,
+                    field_key="cover_letter_text",
                     question=descriptor.question_text(), value=text, method="default",
                     confidence=0.55, action="fill", needs_review=True))
             else:

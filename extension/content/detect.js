@@ -33,8 +33,8 @@ JW.detect = {
           title = posting.title || title;
           company = posting.hiringOrganization?.name || company;
           const address = posting.jobLocation?.address || posting.jobLocation?.[0]?.address;
-          location = [address?.addressLocality, address?.addressRegion, address?.addressCountry]
-            .filter(Boolean).join(", ") || location;
+          place = [address?.addressLocality, address?.addressRegion, address?.addressCountry]
+            .filter(Boolean).join(", ") || place;
           description = (posting.description || "").replace(/<[^>]+>/g, " ") || description;
         }
       } catch { /* malformed ld+json is common */ }
@@ -42,7 +42,6 @@ JW.detect = {
 
     title = title || JW.util.clean(document.querySelector("h1")?.innerText || meta("og:title") || document.title);
     company = company || JW.util.clean(meta("og:site_name"))
-      || JW.util.clean(location.hostname?.replace(/^www\./, "").split(".")[0] || "")
       || JW.util.clean(window.location.hostname.replace(/^www\./, "").split(".")[0]);
     if (!description) {
       const candidates = [...document.querySelectorAll(
@@ -58,7 +57,7 @@ JW.detect = {
     return {
       title: title.slice(0, 200),
       company: company.slice(0, 120),
-      location: (location || locationNode || "").slice(0, 120),
+      location: (place || locationNode || "").slice(0, 120),
       description: JW.util.clean(description).slice(0, 30000),
       url: window.location.href,
     };

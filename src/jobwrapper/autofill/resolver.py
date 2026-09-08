@@ -430,7 +430,8 @@ class FieldResolver:
                     plan.unresolved.append(descriptor)
                 continue
             plan.fields.append(FilledField(
-                selector=descriptor.selector, field_key=resolution.field_key,
+                selector=descriptor.selector, frame=descriptor.frame,
+                field_key=resolution.field_key,
                 question=descriptor.question_text(), value=resolution.value,
                 method=resolution.method, confidence=round(resolution.confidence, 3),
                 action=resolution.action, needs_review=resolution.needs_review))

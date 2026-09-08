@@ -146,10 +146,7 @@ class ATSAdapter:
     def _find_first(session: BrowserSession, selectors: list[str]) -> Any:
         for selector in selectors:
             try:
-                if selector.startswith("button:has-text"):
-                    locator = session.page.locator(selector).first
-                else:
-                    locator = session.page.locator(selector).first
+                locator = session.page.locator(selector).first
                 if locator.count() and locator.is_visible():
                     return locator
             except Exception:

@@ -294,7 +294,7 @@ class ApplicationRunner:
 
             errors = 0
             for filled in plan.fields:
-                ok, error = session.apply_field(filled, frame="")
+                ok, error = session.apply_field(filled, frame=filled.frame)
                 if not ok:
                     filled.error = error
                     errors += 1

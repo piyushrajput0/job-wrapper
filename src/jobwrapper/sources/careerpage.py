@@ -80,8 +80,61 @@ def detect_from_text(text: str, *, company: str = "", url: str = "") -> Detected
     return None
 
 
+def candidate_slugs(domain: str, company: str = "") -> list[str]:
+    """Board tokens are nearly always the company's own name, so guess from the domain."""
+    label = domain.replace("www.", "").split(".")[0].lower()
+    out = [label, label.replace("-", ""), label.replace("-", "_")]
+    if company:
+        clean = re.sub(r"[^a-z0-9]+", "", company.lower())
+        out += [clean, company.lower().replace(" ", "-")]
+    seen: list[str] = []
+    for slug in out:
+        if slug and slug not in seen and slug not in {"www", "jobs", "careers", "com"}:
+            seen.append(slug)
+    return seen
+
+
+def probe_boards(domain: str, http: HttpClient, company: str = "") -> DetectedBoard | None:
+    """Ask each ATS whether it hosts a board for this company.
+
+    Career pages are increasingly rendered by JavaScript, so reading the HTML finds nothing.
+    Asking the eight board APIs directly costs a handful of requests and works anyway.
+    """
+    def has_jobs(payload: object, key: str | None) -> bool:
+        if payload is None:
+            return False
+        if key is None:
+            return isinstance(payload, list) and len(payload) > 0
+        return bool(isinstance(payload, dict) and payload.get(key))
+
+    probes: list[tuple[str, str, str | None, dict]] = [
+        ("greenhouse", "https://boards-api.greenhouse.io/v1/boards/{s}/jobs", "jobs", {}),
+        ("greenhouse", "https://boards-api.eu.greenhouse.io/v1/boards/{s}/jobs", "jobs",
+         {"region": "eu"}),
+        ("lever", "https://api.lever.co/v0/postings/{s}?mode=json&limit=1", None, {}),
+        ("ashby", "https://api.ashbyhq.com/posting-api/job-board/{s}", "jobs", {}),
+        ("workable", "https://apply.workable.com/api/v1/widget/accounts/{s}", "jobs", {}),
+        ("recruitee", "https://{s}.recruitee.com/api/offers/", "offers", {}),
+        ("breezy", "https://{s}.breezy.hr/json", None, {}),
+        ("smartrecruiters",
+         "https://api.smartrecruiters.com/v1/companies/{s}/postings?limit=1", "content", {}),
+    ]
+
+    for slug in candidate_slugs(domain, company):
+        for ats, template, key, extra in probes:
+            payload = http.get_json(template.format(s=slug))
+            if has_jobs(payload, key):
+                log.info("probed %s: found a %s board '%s'", domain, ats, slug)
+                found = DetectedBoard(ats=ats, token=slug, company=company or slug.title(),
+                                      url=f"https://{domain}", confidence=0.8)
+                if extra.get("region"):
+                    found.url = f"https://{domain}#region=eu"
+                return found
+    return None
+
+
 def detect_from_url(url: str, http: HttpClient, *, company: str = "") -> DetectedBoard | None:
-    """Try the URL itself, then the page HTML, then a couple of conventional careers paths."""
+    """URL, then page HTML, then conventional careers paths, then probe the board APIs."""
     direct = detect_from_text(url, company=company, url=url)
     if direct:
         return direct
@@ -104,7 +157,9 @@ def detect_from_url(url: str, http: HttpClient, *, company: str = "") -> Detecte
             log.info("detected %s board '%s' from %s", found.ats, found.token or found.tenant,
                      candidate)
             return found
-    return None
+
+    # the page told us nothing (usually because it is rendered client-side) - ask the ATSes
+    return probe_boards(domain, http, company)
 
 
 class CareerPage(JobSource):

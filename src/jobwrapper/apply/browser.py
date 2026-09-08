@@ -128,18 +128,21 @@ class BrowserSession:
             unique.setdefault((descriptor.frame, descriptor.selector), descriptor)
         return list(unique.values())
 
+    def _frame_for(self, descriptor_frame: str) -> Any:
+        if not descriptor_frame:
+            return self.page
+        for index, frame in enumerate(self.frames()):
+            name = "" if index == 0 else (getattr(frame, "name", "") or f"frame{index}")
+            if name == descriptor_frame:
+                return frame
+        return self.page
+
     def _locator(self, descriptor_frame: str, selector: str) -> Any:
-        target = self.page
-        if descriptor_frame:
-            for index, frame in enumerate(self.frames()):
-                name = "" if index == 0 else (getattr(frame, "name", "") or f"frame{index}")
-                if name == descriptor_frame:
-                    target = frame
-                    break
-        return target.locator(selector).first
+        return self._frame_for(descriptor_frame).locator(selector).first
 
     # ------------------------------------------------------------------ filling
     def apply_field(self, filled: FilledField, frame: str = "") -> tuple[bool, str]:
+        frame = frame or filled.frame
         try:
             locator = self._locator(frame, filled.selector)
             if filled.action == "upload":
@@ -158,7 +161,7 @@ class BrowserSession:
                 return True, ""
 
             if filled.action == "select":
-                return self._select(locator, filled)
+                return self._select(locator, filled, frame)
 
             locator.scroll_into_view_if_needed(timeout=5000)
             locator.click(timeout=8000)
@@ -168,7 +171,7 @@ class BrowserSession:
         except Exception as exc:
             return False, str(exc)[:200]
 
-    def _select(self, locator: Any, filled: FilledField) -> tuple[bool, str]:
+    def _select(self, locator: Any, filled: FilledField, frame: str = "") -> tuple[bool, str]:
         # native <select>
         try:
             if locator.evaluate("el => el.tagName.toLowerCase()") == "select":
@@ -179,7 +182,7 @@ class BrowserSession:
         # radio group: click the input whose label matches
         try:
             if "type=\"radio\"" in filled.selector or "type='radio'" in filled.selector:
-                group = self.page.locator(filled.selector)
+                group = self._frame_for(frame).locator(filled.selector)
                 count = group.count()
                 for index in range(count):
                     radio = group.nth(index)
