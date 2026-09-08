@@ -25,6 +25,7 @@ dependencies = [
     "uvicorn[standard]>=0.30",
     "playwright>=1.45",
     "questionary>=2.0",
+    "pypdf>=6.18.0",
 ]
 
 [project.optional-dependencies]

@@ -27,7 +27,22 @@ from ..models.resume import (
 log = get("resume.import")
 
 EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
-PHONE_RE = re.compile(r"(\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}")
+# US, UK, India, EU. The regex is deliberately loose about grouping and the digit count is
+# checked afterwards, because "+49 30 12345678" and "(415) 555-0142" have nothing in common
+# structurally beyond "a run of digits with separators".
+PHONE_RE = re.compile(
+    r"(?<![\d/\-])(?:\+\d{1,3}[\s.\-]?)?(?:\(\d{2,5}\)[\s.\-]?)?"
+    r"\d{2,5}(?:[\s.\-]?\d{2,5}){1,3}(?![\d/\-])")
+
+
+def find_phone(text: str) -> str:
+    """First candidate with a plausible number of digits (7-15, per E.164)."""
+    for match in PHONE_RE.finditer(text):
+        candidate = match.group(0).strip()
+        digits = sum(c.isdigit() for c in candidate)
+        if 7 <= digits <= 15:
+            return candidate
+    return ""
 URL_RE = re.compile(r"https?://[^\s{}\\,)]+")
 DATE_RANGE_RE = re.compile(
     r"((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*\d{4}|\d{4}-\d{2}|\d{4})"
@@ -83,8 +98,18 @@ def strip_latex(text: str) -> str:
     return re.sub(r"[ \t]+", " ", text).strip()
 
 
+SKILL_GROUP_WORDS = re.compile(
+    r"^(languages?|frameworks?|libraries|tools?|technolog\w+|infrastructure|cloud|databases?|"
+    r"practices?|skills?|platforms?|methodolog\w+|devops|testing|other)\b[:\s]+(.+)$", re.I)
+
+
 def _split_skill_line(line: str) -> tuple[str, list[str]] | None:
     if ":" not in line:
+        # PDF extraction drops the colon: "Languages Python, Go, SQL"
+        match = SKILL_GROUP_WORDS.match(line.strip())
+        if match and "," in match.group(2):
+            items = [s.strip(" .;") for s in match.group(2).split(",") if s.strip(" .;")]
+            return (match.group(1).title(), items) if items else None
         return None
     group, _, rest = line.partition(":")
     group = strip_latex(group).strip(" -•\t")
@@ -111,15 +136,18 @@ def parse_latex(source: str) -> MasterResume:
                 break
         else:
             resume.links.setdefault("website", url)
-    phone = PHONE_RE.search(strip_latex(body[:1500]))
-    if phone:
-        resume.phone = phone.group(0).strip()
+    resume.phone = find_phone(strip_latex(body[:2000]))
 
     # name: the first \Huge/\LARGE/\name{} chunk, else the first non-empty text line
-    name_match = re.search(
-        r"\\(?:name|Huge|LARGE|huge|scshape)\s*\{?\s*([A-Z][^}\\\n]{2,58})", body)
-    if name_match:
-        resume.name = strip_latex(name_match.group(1)).strip()
+    two_part = re.search(r"\\(?:name|author)\s*\{([^{}]{1,40})\}\s*\{([^{}]{0,40})\}", source)
+    if two_part:
+        resume.name = " ".join(
+            strip_latex(part).strip() for part in two_part.groups() if part.strip()).strip()
+    if not resume.name:
+        name_match = re.search(
+            r"\\(?:name|author|Huge|LARGE|huge|scshape)\s*\{?\s*([A-Z][^}\\\n]{2,58})", body)
+        if name_match:
+            resume.name = strip_latex(name_match.group(1)).strip()
     if not resume.name:
         for line in strip_latex(body[:800]).splitlines():
             candidate = line.strip()
@@ -131,6 +159,7 @@ def parse_latex(source: str) -> MasterResume:
     section_pattern = re.compile(
         r"\\(?:section|subsection|cvsection|resumeSection|heading)\*?\{([^}]*)\}", re.I)
     matches = list(section_pattern.finditer(body))
+    inherited: str | None = None
     for index, match in enumerate(matches):
         title = strip_latex(match.group(1)).strip().lower()
         start = match.end()
@@ -138,6 +167,15 @@ def parse_latex(source: str) -> MasterResume:
         chunk = body[start:end]
         kind = next((key for key, names in SECTION_ALIASES.items()
                      if any(title.startswith(n) or n in title for n in names)), None)
+        # "\\section{Experience}" followed by "\\subsection{Vocational}" - the subsection has no
+        # alias of its own, but its entries still belong to the parent section
+        is_subsection = match.group(0).lstrip("\\").startswith("subsection")
+        if kind:
+            inherited = kind
+        elif is_subsection and inherited:
+            kind = inherited
+        elif not is_subsection:
+            inherited = None
 
         if kind == "summary":
             resume.summary = " ".join(strip_latex(chunk).split())[:800]
@@ -163,16 +201,19 @@ def parse_latex(source: str) -> MasterResume:
 
 
 ENTRY_MACRO_RE = re.compile(
-    r"\\(resumeSubheading|resumeProjectHeading|resumeSubItem|cventry|cvitem|subheading|"
-    r"twocolentry|entry|educationItem|experienceItem)\s*(?=[\{\[])")
+    r"\\(resumeSubheading|resumeProjectHeading|cventry|cvevent|cvsubsection|subheading|"
+    r"twocolentry|entry|educationItem|experienceItem|honor|position)\s*(?=[\{\[])")
 
 TITLE_WORDS = re.compile(
     r"engineer|developer|manager|analyst|scientist|designer|architect|consultant|intern|"
     r"lead|director|specialist|administrator|researcher|founder|associate|president|officer",
     re.I)
 DEGREE_WORDS = re.compile(
-    r"bachelor|master|b\.?\s?tech|m\.?\s?tech|b\.?\s?e\b|b\.?\s?sc|m\.?\s?sc|b\.?s\.?\b|"
-    r"m\.?s\.?\b|ph\.?d|mba|diploma|associate of|degree",
+    r"bachelor|master|doctor(?:ate)?|"
+    r"b\.?\s?tech|m\.?\s?tech|b\.?\s?eng|m\.?\s?eng|b\.?\s?e\b|m\.?\s?e\b|"
+    r"b\.?\s?sc|m\.?\s?sc|b\.?s\.?\b|m\.?s\.?\b|b\.?a\.?\b|m\.?a\.?\b|"
+    r"bba|mba|bca|mca|llb|llm|md\b|ph\.?\s?d|"
+    r"diploma|associate of|honours|honors degree|degree",
     re.I)
 INSTITUTION_WORDS = re.compile(
     r"universit|college|institute|school|academy|polytechnic|iit\b|nit\b|\bbits\b", re.I)
@@ -244,8 +285,29 @@ def _classify_args(args: list[str]) -> dict[str, str]:
     return out
 
 
+BULLET_MACROS = ("resumeItem", "resumeSubItem", "cvitem", "cvlistitem", "cvline",
+                 "achievement", "item")
+
+
+def _macro_first_args(text: str, macros: tuple[str, ...]) -> list[str]:
+    r"""Every `\macro{...}` invocation's first argument, brace-balanced.
+
+    Needed because the popular templates wrap bullets in their own macro rather than \item,
+    and those arguments routinely contain nested braces (\textbf{...}, $...$, \href{}{}).
+    """
+    pattern = re.compile(r"\\(" + "|".join(macros) + r")\s*(?=[\{\[])")
+    out: list[str] = []
+    for match in pattern.finditer(text):
+        args, _end = _brace_args(text, match.end())
+        if args:
+            out.append(args[0])
+    return out
+
+
 def _bullets_from(chunk: str) -> list[str]:
-    items = [strip_latex(b).strip() for b in re.findall(r"\\item\s*(.+)", chunk)]
+    items = [strip_latex(b).strip() for b in _macro_first_args(chunk, BULLET_MACROS)]
+    if not items:
+        items = [strip_latex(b).strip() for b in re.findall(r"\\item\s+([^\n]+)", chunk)]
     if not items:
         items = [strip_latex(line).strip(" -•*\t")
                  for line in chunk.splitlines() if line.strip().startswith(("-", "•", "*"))]
@@ -272,6 +334,11 @@ def _parse_entries(chunk: str, kind: str, resume: MasterResume) -> None:
     for args, body in entries:
         info = _classify_args(args)
         bullets = _bullets_from(body)
+        if not bullets:
+            # \cventry{date}{title}{org}{city}{grade}{description} - the prose is an argument,
+            # not an \item, so nothing above finds it
+            bullets = [text for text in (strip_latex(a).strip() for a in args[4:])
+                       if len(text) > 25]
         if not any(info.values()) and not bullets:
             continue
 
@@ -325,6 +392,144 @@ def _useful_education_details(bullets: list[str]) -> list[str]:
     return kept
 
 
+CITY_PREFIXES = {"San", "New", "Los", "Las", "Santa", "Saint", "St.", "St", "Fort", "Ft.",
+                 "Port", "El", "Rio", "Sao", "São", "Mount", "Mountain", "Lake", "North",
+                 "South", "East", "West", "Upper", "Lower", "Greater"}
+
+# two-word places whose first word is not a generic prefix, so the rule above cannot find them
+MULTIWORD_CITIES = {
+    "palo alto", "menlo park", "ann arbor", "long beach", "redwood city", "culver city",
+    "jersey city", "kansas city", "salt lake city", "buenos aires", "hong kong", "tel aviv",
+    "kuala lumpur", "ho chi minh", "abu dhabi", "cape town", "milton keynes", "silicon valley",
+    "research triangle", "boca raton", "coral gables", "walnut creek",
+    "navi mumbai", "gurgaon haryana", "electronic city", "hi tech city", "salt lake",
+}
+
+LOCATION_SUFFIX_RE = re.compile(
+    r"^[A-Z][A-Za-z.'-]+(?:[ -][A-Z][A-Za-z.'-]+){0,2},\s*"
+    r"(?:[A-Z]{2}|[A-Z][a-z]+(?: [A-Z][a-z]+)?)$")
+
+
+def _split_company_location(line: str) -> tuple[str, str]:
+    """Split "Northwind Data San Francisco, CA" into company and location.
+
+    PDF extraction collapses whatever whitespace separated the two columns, so the only way back
+    is to take the longest trailing run that reads like a place while still leaving a company
+    behind - "San Francisco, CA", not "Francisco, CA".
+    """
+    line = line.strip()
+    for separator in ("|", "\u00b7", "  "):
+        if separator in line:
+            parts = [p.strip() for p in line.split(separator) if p.strip()]
+            if len(parts) >= 2:
+                return parts[0][:120], parts[-1][:80]
+
+    words = line.split()
+    for start in range(len(words) - 1, 0, -1):             # shortest plausible place first
+        suffix = " ".join(words[start:])
+        if not LOCATION_SUFFIX_RE.match(suffix):
+            continue
+        # "San Francisco, CA" not "Francisco, CA": absorb the words that begin a place name
+        while start > 1 and words[start - 1] in CITY_PREFIXES:
+            start -= 1
+        if start > 1:
+            city = " ".join(words[start - 1:]).split(",")[0].strip().lower()
+            if city in MULTIWORD_CITIES:
+                start -= 1
+        return " ".join(words[:start])[:120], " ".join(words[start:])[:80]
+    return line[:120], ""
+
+
+def _parse_plain_entries(lines: list[str], kind: str, resume: MasterResume) -> None:
+    """Parse a plain-text section, as extracted from a PDF or written in Markdown.
+
+    Real résumés put the date range on the same line as the role and the company on the next,
+    then list achievements with no bullet marker at all once a PDF has been through a text
+    extractor. A date range is the one reliable signal that a new entry has started.
+    """
+    blocks: list[list[str]] = []
+    for line in [ln.rstrip() for ln in lines]:
+        if not line.strip():
+            continue
+        if DATE_RANGE_RE.search(line) or not blocks:
+            blocks.append([line])
+        else:
+            blocks[-1].append(line)
+
+    for block in blocks:
+        header = block[0]
+        dates = DATE_RANGE_RE.search(header)
+        start = normalize_month_year(dates.group(1)) if dates else ""
+        end = normalize_month_year(dates.group(2)) if dates else ""
+        title_line = DATE_RANGE_RE.sub("", header).strip(" ,|·-\t")
+
+        second = block[1] if len(block) > 1 else ""
+        second_is_meta = bool(second) and len(second) < 90 and not second.endswith(".")
+        body = block[2:] if second_is_meta else block[1:]
+        bullets = [b.strip(" -•*\t") for b in body if len(b.strip()) > 18]
+
+        company, location = (_split_company_location(second) if second_is_meta
+                             else ("", ""))
+
+        if kind == "experience":
+            if not title_line and not company:
+                continue
+            resume.experience.append(ResumeExperience(
+                title=title_line[:120], company=company[:120], location=location[:80],
+                start_date=start, end_date=end,
+                bullets=[ResumeBullet(text=b) for b in bullets]))
+        elif kind == "projects":
+            if not title_line:
+                continue
+            resume.projects.append(ResumeProject(
+                name=title_line[:100], description=(bullets[0] if bullets else ""),
+                bullets=[ResumeBullet(text=b) for b in bullets[1:]],
+                start_date=start, end_date=end))
+        else:
+            text = " ".join(block)
+            gpa = re.search(r"(?:gpa|cgpa)\s*[:\-]?\s*([\d.]+)", text, re.I)
+            minor = re.search(r"minor\s*(?:in|:)?\s*([A-Za-z &]+)", text, re.I)
+            institution = title_line if not DEGREE_WORDS.search(title_line) else company
+            degree = title_line if DEGREE_WORDS.search(title_line) else (
+                company if DEGREE_WORDS.search(company) else "")
+            if not institution and not degree:
+                continue
+            degree = re.split(r"\s*[(\u2022]|\s+GPA\b|\s+Minor\b", degree, maxsplit=1)[0].strip()
+            resume.education.append(ResumeEducation(
+                institution=(institution or company)[:120], degree=degree[:120],
+                field_of_study=_field_of_study(degree), location=location,
+                minor=(minor.group(1).strip().rstrip(". ")[:60] if minor else ""),
+                start_date=start, end_date=end, gpa=(gpa.group(1) if gpa else ""),
+                details=_useful_education_details(bullets)[:3]))
+
+
+def _fill_skill_gap(resume: MasterResume) -> None:
+    """No Skills section? Derive one from the text.
+
+    Plenty of résumés list technologies only inside bullets. Without a skills section the tailor
+    has nothing to re-order and the ATS lint marks the résumé down, so synthesise the group from
+    what the text demonstrably contains.
+    """
+    if resume.skill_groups:
+        return
+    from ..pipeline.match import _taxonomy, extract_skills
+
+    found = extract_skills(resume.text_corpus())
+    if not found:
+        return
+    categories = _taxonomy()["skills"]
+    grouped: dict[str, list[str]] = {}
+    labels = {"language": "Languages", "frontend": "Frontend", "backend": "Backend",
+              "data": "Data", "ml": "Machine Learning", "cloud": "Cloud & Infrastructure",
+              "mobile": "Mobile", "tools": "Tools", "practice": "Practices", "soft": "Strengths"}
+    for skill in sorted(found):
+        category = categories.get(skill, {}).get("category", "tools")
+        grouped.setdefault(labels.get(category, "Skills"), []).append(skill)
+    resume.skill_groups = {k: v for k, v in grouped.items() if k != "Strengths"}
+    log.info("no skills section found - derived %d skill(s) from the résumé text",
+             sum(len(v) for v in resume.skill_groups.values()))
+
+
 def _field_of_study(degree_line: str) -> str:
     """"Bachelor of Science in Computer Science" -> "Computer Science"."""
     match = re.search(r"\bin\s+([A-Za-z &]+)$", degree_line.strip())
@@ -338,9 +543,7 @@ def parse_plaintext(text: str) -> MasterResume:
     email = EMAIL_RE.search(text)
     if email:
         resume.email = email.group(0)
-    phone = PHONE_RE.search(text)
-    if phone:
-        resume.phone = phone.group(0).strip()
+    resume.phone = find_phone(text[:2000])
     lines = [line.rstrip() for line in text.splitlines()]
     resume.name = next((line.strip() for line in lines[:5] if line.strip()), "")
 
@@ -361,8 +564,7 @@ def parse_plaintext(text: str) -> MasterResume:
             elif current == "certifications":
                 resume.certifications = [line.strip("-• ") for line in buffer if line.strip("-• ")]
             else:
-                _parse_entries("\n".join(f"\\item {line.strip('-• ')}" if line.strip().startswith(("-", "•", "*"))
-                                         else line for line in buffer), current, resume)
+                _parse_plain_entries(buffer, current, resume)
         buffer = []
 
     for line in lines:
@@ -382,15 +584,69 @@ class _ImportedResume(MasterResume):
     """Same shape - used as the structured-output target for the model-assisted import."""
 
 
+INPUT_RE = re.compile(r"\\(?:input|include|subfile)\s*\{([^}]+)\}")
+
+
+def inline_inputs(source: str, base: Path, depth: int = 0, seen: set[str] | None = None) -> str:
+    """Splice in \\input{...} / \\include{...} files.
+
+    Overleaf projects are routinely split into sections/experience.tex and friends. Parsing only
+    the main file then yields a resume with a name and nothing else - which is exactly what
+    Awesome-CV's template does.
+    """
+    if depth > 4:
+        return source
+    seen = seen if seen is not None else set()
+
+    def replace(match: re.Match[str]) -> str:
+        target = match.group(1).strip()
+        for candidate in (base / target, base / f"{target}.tex"):
+            resolved = candidate.resolve()
+            if resolved.is_file() and str(resolved) not in seen:
+                seen.add(str(resolved))
+                try:
+                    nested = resolved.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    return ""
+                return inline_inputs(nested, resolved.parent, depth + 1, seen)
+        return ""
+
+    return INPUT_RE.sub(replace, source)
+
+
+def pdf_to_text(path: Path) -> str:
+    """Most people have a PDF and no .tex. Extract the text so they can still import it."""
+    try:
+        from pypdf import PdfReader
+    except ImportError as exc:                                    # pragma: no cover
+        raise RuntimeError("reading a PDF résumé needs pypdf: uv add pypdf") from exc
+
+    reader = PdfReader(str(path))
+    pages = []
+    for page in reader.pages:
+        text = page.extract_text() or ""
+        # PDF extraction often loses the bullet glyph but keeps the indent
+        pages.append(re.sub(r"\n(?=[A-Z][a-z]+ed\b|\u2022)", "\n- ", text))
+    return "\n".join(pages)
+
+
 def import_master_resume(path: Path, llm: LLMClient | None = None,
                          use_llm: bool = True) -> MasterResume:
-    raw = path.read_text(encoding="utf-8", errors="replace")
     suffix = path.suffix.lower()
+    raw = (pdf_to_text(path) if suffix == ".pdf"
+           else path.read_text(encoding="utf-8", errors="replace"))
+    if suffix == ".tex":
+        expanded = inline_inputs(raw, path.parent)
+        if len(expanded) > len(raw):
+            log.info("inlined %d bytes from \\input/\\include files",
+                     len(expanded) - len(raw))
+        raw = expanded
 
     if suffix == ".json":
         return MasterResume.model_validate(json.loads(raw))
 
     deterministic = parse_latex(raw) if suffix == ".tex" else parse_plaintext(raw)
+    _fill_skill_gap(deterministic)
 
     if use_llm and llm and llm.available():
         try:
