@@ -111,15 +111,35 @@ class LLMClient:
         self.config = config or LLMConfig()
         self.tracker = UsageTracker(model=self.config.model)
         self._client: Any = None
+        self._key: str | None = None
 
     # ------------------------------------------------------------------ availability
+    def api_key(self) -> str:
+        """Environment first, then the key the user pasted into the UI (encrypted at rest)."""
+        if self._key is not None:
+            return self._key
+        self._key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not self._key:
+            try:
+                from ..vault import Vault
+
+                self._key = Vault(interactive=False).get_api_key("anthropic")
+            except Exception as exc:
+                log.debug("could not read the API key from the vault: %s", exc)
+                self._key = ""
+        return self._key
+
+    def forget_key(self) -> None:
+        self._key = None
+        self._client = None
+
     def available(self) -> bool:
         if not self.config.enabled:
             return False
         if os.environ.get("JOBWRAPPER_NO_LLM"):
             return False
         return bool(
-            os.environ.get("ANTHROPIC_API_KEY")
+            self.api_key()
             or os.environ.get("ANTHROPIC_AUTH_TOKEN")
             or (Path.home() / ".config" / "anthropic").exists()
         )
@@ -133,7 +153,9 @@ class LLMClient:
         if self._client is None:
             import anthropic
 
-            self._client = anthropic.Anthropic(timeout=180.0, max_retries=3)
+            key = self.api_key()
+            self._client = (anthropic.Anthropic(api_key=key, timeout=180.0, max_retries=3)
+                            if key else anthropic.Anthropic(timeout=180.0, max_retries=3))
         return self._client
 
     # ------------------------------------------------------------------ calls

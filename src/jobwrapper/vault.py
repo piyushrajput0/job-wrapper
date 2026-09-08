@@ -84,10 +84,13 @@ def _keychain_set(passphrase: str) -> bool:
 
 
 class Vault:
-    def __init__(self, path: Path | None = None, passphrase: str | None = None) -> None:
+    def __init__(self, path: Path | None = None, passphrase: str | None = None,
+                 interactive: bool = True) -> None:
         self.path = path or paths.ensure_layout()["vault"]
         self._passphrase = passphrase
         self._data: dict[str, dict[str, Any]] | None = None
+        # the web server and the apply loop must never block on a terminal prompt
+        self.interactive = interactive
 
     # ------------------------------------------------------------------ crypto
     def _resolve_passphrase(self, *, confirm_new: bool = False) -> str:
@@ -101,6 +104,9 @@ class Vault:
         if kc:
             self._passphrase = kc
             return kc
+        if not self.interactive:
+            return self._auto_passphrase()
+
         import getpass
 
         prompt = "Create a vault passphrase: " if confirm_new else "Vault passphrase: "
@@ -112,6 +118,38 @@ class Vault:
             _keychain_set(pw)
         self._passphrase = pw
         return pw
+
+    def _auto_passphrase(self) -> str:
+        """Machine-generated passphrase, kept in the macOS keychain (or a 0600 file elsewhere).
+
+        This is what lets the UI store an API key without ever prompting. It is still better
+        than plaintext: the secret file is encrypted, and on macOS the key lives in the keychain.
+        """
+        keyfile = self.path.parent / ".vaultkey"
+        existing = _keychain_get() or (keyfile.read_text().strip() if keyfile.exists() else "")
+        if existing:
+            self._passphrase = existing
+            return existing
+        generated = secrets.token_urlsafe(32)
+        if not _keychain_set(generated):
+            keyfile.parent.mkdir(parents=True, exist_ok=True)
+            keyfile.write_text(generated)
+            os.chmod(keyfile, 0o600)
+        self._passphrase = generated
+        return generated
+
+    # ------------------------------------------------------------------ api keys
+    def set_api_key(self, provider: str, key: str) -> None:
+        self.put(Credential(domain=f"apikey:{provider}", username=provider, password=key,
+                            notes="API key stored by jobwrapper"))
+
+    def get_api_key(self, provider: str) -> str:
+        data = self._load()
+        entry = data.get(f"apikey:{provider}")
+        return entry["password"] if entry else ""
+
+    def clear_api_key(self, provider: str) -> bool:
+        return self.delete(f"apikey:{provider}")
 
     @staticmethod
     def _derive(passphrase: str, salt: bytes) -> bytes:

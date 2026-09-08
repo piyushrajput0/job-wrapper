@@ -32,3 +32,6 @@ screenshots/
 
 # build output
 dist/
+
+# secrets
+.vaultkey

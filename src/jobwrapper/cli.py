@@ -367,6 +367,87 @@ def apply(job_id: list[str] = typer.Option(None, "--job", "-j"),
 
 
 @app.command()
+def run(limit: int = typer.Option(5, help="How many jobs to work through"),
+        autonomy: str | None = typer.Option(None, help="dryrun | review | auto"),
+        search: bool = typer.Option(True, "--search/--no-search", help="Search before applying"),
+        overleaf: bool = typer.Option(True, "--overleaf/--no-overleaf",
+                                      help="Pull the latest resume from Overleaf first"),
+        headless: bool | None = typer.Option(None),
+        yes: bool = typer.Option(False, "--yes", "-y")):
+    """The whole loop: pull the resume, search, then tailor and apply one job at a time."""
+    setup()
+    from .pipeline import Autopilot
+
+    config, store, profile_data, master = ctx()
+    if autonomy:
+        config.apply.autonomy = autonomy  # type: ignore[assignment]
+    if headless is not None:
+        config.apply.headless = headless
+
+    missing = profile_data.missing_required()
+    if missing:
+        console.print(f"[red]profile incomplete:[/red] {', '.join(missing)}")
+        console.print("run [cyan]jobwrapper ui[/cyan] to fill it in")
+        raise typer.Exit(1)
+
+    llm = LLMClient(config.llm)
+    console.print(Panel.fit(
+        f"[bold]Autopilot[/bold]\n"
+        f"jobs        up to {limit}\n"
+        f"autonomy    {config.apply.autonomy}"
+        f"{'  [red](submits by itself)[/red]' if config.apply.autonomy == 'auto' else ''}\n"
+        f"search      {'yes' if search else 'no'}\n"
+        f"overleaf    {'yes' if overleaf and config.resume.overleaf_git_url else 'no'}\n"
+        f"tailoring   {'Claude ' + config.llm.model if llm.available() else 'deterministic ranker (no API key)'}",
+        title="about to run"))
+    if not yes:
+        typer.confirm("Start?", abort=True)
+
+    def show(event) -> None:
+        prefix = f"[dim]{event.index}/{event.total}[/dim] " if event.total else ""
+        who = f"[bold]{event.company}[/bold] — " if event.company else ""
+        colour = {"submitted": "green", "needs_input": "yellow", "failed": "red"}.get(event.status, "")
+        text = f"[{colour}]{event.message}[/{colour}]" if colour else event.message
+        console.print(f"  {prefix}[cyan]{event.stage}[/cyan] {who}{text}")
+
+    pilot = Autopilot(config, store, profile_data, master, llm, on_progress=show)
+    try:
+        report = pilot.run(limit=limit, do_search=search, do_overleaf=overleaf)
+    except KeyboardInterrupt:
+        pilot.stop()
+        console.print("[yellow]stopping after the job in flight...[/yellow]")
+        raise
+    console.print(f"\n[green]{report.submitted}[/green] submitted · "
+                  f"[cyan]{report.ready_for_review}[/cyan] ready for review · "
+                  f"[yellow]{report.needs_input}[/yellow] need you · "
+                  f"[red]{report.failed}[/red] failed · {report.resumes_built} resume(s) built")
+    if llm.available():
+        console.print(f"[dim]model spend this run: ${llm.cost_so_far():.3f}[/dim]")
+    store.close()
+
+
+@app.command("key")
+def set_key(key: str = typer.Option(..., prompt="Anthropic API key", hide_input=True),
+            clear: bool = typer.Option(False, "--clear")):
+    """Store your Claude API key (encrypted). The app then uses it for tailoring and answers."""
+    setup()
+    from .vault import Vault
+
+    vault = Vault(interactive=False)
+    if clear:
+        vault.clear_api_key("anthropic")
+        console.print("[green]key removed[/green]")
+        return
+    if not key.startswith("sk-"):
+        console.print("[red]that does not look like an Anthropic key (sk-...)[/red]")
+        raise typer.Exit(1)
+    vault.set_api_key("anthropic", key)
+    client = LLMClient()
+    console.print(f"[green]saved[/green] — the app will use it "
+                  f"({'verified available' if client.available() else 'not detected, check the key'})")
+
+
+@app.command()
 def status(limit: int = typer.Option(15)):
     """Application pipeline at a glance."""
     setup()

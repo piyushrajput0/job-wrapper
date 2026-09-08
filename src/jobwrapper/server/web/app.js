@@ -28,12 +28,15 @@
     send: "M3 10l14-6-6 14-2-6-6-2z",
     chat: "M4 4h12v9H8l-4 3z",
     file: "M5 2h7l4 4v12H5zM12 2v4h4",
+    bolt: "M11 2L4 11h5l-1 7 7-9h-5z",
     gear: "M10 13a3 3 0 100-6 3 3 0 000 6zM10 1v3M10 16v3M3 10H1m18 0h-2M4.2 4.2l1.4 1.4m8.8 8.8l1.4 1.4M4.2 15.8l1.4-1.4m8.8-8.8l1.4-1.4",
   };
   const icon = (name) => `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[name] || ICONS.list}"/></svg>`;
 
   const ROUTES = [
+    { id: "autopilot", label: "Autopilot", icon: "bolt", title: "Autopilot",
+      subtitle: "Find, tailor and apply — one job at a time" },
     { id: "dashboard", label: "Dashboard", icon: "home", title: "Dashboard",
       subtitle: "Everything at a glance" },
     { id: "profile", label: "Profile", icon: "user", title: "Your profile",
@@ -224,6 +227,131 @@
     }
   }
 
+
+  /* -------------------------------------------------------------- autopilot */
+  let apTimer = null;
+
+  function renderRun(task) {
+    const live = el("ap-live");
+    if (!live) return;
+    live.hidden = false;
+    const events = task.events || [];
+    const last = events[events.length - 1] || {};
+    const done = last.total ? `${last.index}/${last.total}` : "—";
+    el("ap-count").textContent = last.total ? `job ${done}` : (task.progress || "starting…");
+    el("ap-bar").style.width = last.total ? `${Math.round((last.index / last.total) * 100)}%` : "0%";
+    el("ap-state").textContent = task.status === "running"
+      ? (task.progress || "working…") : task.status;
+    el("ap-log").innerHTML = events.slice(-40).map((e) => {
+      const cls = e.status === "submitted" ? "good"
+        : ["needs_input", "failed"].includes(e.status) ? "warn" : "";
+      const who = e.company ? `<b>${Form.esc(e.company)}</b> · ${Form.esc(e.title || "")} — ` : "";
+      return `<div class="${cls === "good" ? "r" : cls === "warn" ? "g" : "muted"}">
+        <span class="muted">[${Form.esc(e.stage)}]</span> ${who}${Form.esc(e.message)}</div>`;
+    }).join("");
+    el("ap-log").scrollTop = el("ap-log").scrollHeight;
+
+    const running = task.status === "running";
+    if (el("ap-start")) el("ap-start").disabled = running;
+    if (el("ap-start")) el("ap-start").textContent = running ? "Running…" : "Start run";
+    if (el("ap-stop")) el("ap-stop").disabled = !running;
+
+    if (!running && task.result) {
+      const r = task.result;
+      el("ap-result").hidden = false;
+      el("ap-result-body").innerHTML = `
+        <div class="grid stats" style="margin-bottom:12px">
+          <div class="stat"><div class="k">Submitted</div><div class="v">${r.submitted}</div></div>
+          <div class="stat"><div class="k">Ready for review</div><div class="v">${r.ready_for_review}</div></div>
+          <div class="stat"><div class="k">Need you</div><div class="v">${r.needs_input}</div></div>
+          <div class="stat"><div class="k">Résumés built</div><div class="v">${r.resumes_built}</div></div>
+        </div>
+        ${(r.applications || []).length ? `<table><tbody>${r.applications.map((a) => `<tr>
+          <td>${Form.esc(a.title)}<div class="muted">${Form.esc(a.company)}</div></td>
+          <td style="width:150px">${Views.statusPill(a.status)}</td>
+          <td style="width:90px" class="muted">${a.fields_filled} fields</td>
+          <td style="width:110px">${a.resume
+            ? `<a href="/api/artifact?path=${encodeURIComponent(a.resume)}" target="_blank">résumé</a>` : ""}</td>
+        </tr>`).join("")}</tbody></table>` : ""}
+        <div class="toolbar" style="margin-top:12px">
+          <a class="btn" href="#/applications">Open applications</a></div>`;
+    }
+  }
+
+  async function pollRun() {
+    try {
+      const task = await api.get("/api/autopilot/current");
+      if (task.status === "idle") return;
+      renderRun(task);
+      if (task.status !== "running") {
+        clearInterval(apTimer); apTimer = null;
+        toast(task.status === "failed"
+          ? `Run failed: ${Form.esc((task.error || "").split("\n")[0])}`
+          : "Run finished", task.status === "failed" ? "bad" : "good");
+        refreshSidebar();
+      }
+    } catch { /* server restarting */ }
+  }
+
+  function wireAutopilot() {
+    const start = el("ap-start");
+    if (start) start.onclick = async () => {
+      start.disabled = true;
+      start.innerHTML = '<span class="spin"></span> Starting';
+      try {
+        await api.post("/api/autopilot", {
+          limit: Number(el("ap-limit").value) || 5,
+          autonomy: el("ap-autonomy").value,
+          search: el("ap-search").checked,
+          overleaf: el("ap-overleaf").checked,
+        });
+        toast("Run started — a browser window will open", "good");
+        if (apTimer) clearInterval(apTimer);
+        apTimer = setInterval(pollRun, 1500);
+        pollRun();
+      } catch (error) {
+        toast(Form.esc(error.message), "bad");
+        start.disabled = false; start.textContent = "Start run";
+      }
+    };
+    const stop = el("ap-stop");
+    if (stop) stop.onclick = async () => {
+      await api.post("/api/autopilot/stop", {});
+      toast("Stopping after the job in flight");
+    };
+    pollRun();
+    if (!apTimer) apTimer = setInterval(pollRun, 2000);
+  }
+
+  async function wireSecrets() {
+    const key = el("api-key");
+    if (!key) return;
+    const status = (message, kind) => {
+      el("key-status").innerHTML = `<span class="pill ${kind}">${message}</span>`;
+    };
+    el("btn-save-key").onclick = async () => {
+      if (!key.value.trim()) return toast("Paste a key first", "bad");
+      try {
+        const result = await api.put("/api/secrets", { anthropic_api_key: key.value.trim() });
+        key.value = "";
+        status(result.usable ? "key saved and in use" : "key saved", "good");
+        toast("API key saved (encrypted)", "good");
+      } catch (error) { toast(Form.esc(error.message), "bad"); }
+    };
+    el("btn-test-key").onclick = async (event) => {
+      event.target.innerHTML = '<span class="spin"></span>';
+      const result = await api.post("/api/secrets/test", {});
+      event.target.textContent = "Test";
+      if (result.ok) { status(`working — ${Form.esc(result.model)}`, "good"); toast("Key works", "good"); }
+      else { status("not working", "bad"); toast(Form.esc(result.error || "failed"), "bad"); }
+    };
+    el("btn-clear-key").onclick = async () => {
+      await api.put("/api/secrets", { anthropic_api_key: "" });
+      status("no key — deterministic fallbacks", "warn");
+      toast("Key removed", "good");
+    };
+  }
+
   function wireJobs(params) {
     const refresh = () => {
       const query = new URLSearchParams();
@@ -408,6 +536,7 @@
 
   async function render() {
     const { route, params } = parseHash();
+    if (apTimer && route !== "autopilot") { clearInterval(apTimer); apTimer = null; }
     const meta = ROUTES.find((r) => r.id === route) || ROUTES[0];
     el("title").textContent = meta.title;
     el("subtitle").textContent = meta.subtitle;
@@ -421,10 +550,11 @@
       if (meta.id === "profile") { await renderProfile(); }
       else {
         el("view").innerHTML = await Views[meta.id](api, params);
+        if (meta.id === "autopilot") wireAutopilot();
         if (meta.id === "jobs") wireJobs(params);
         if (meta.id === "answers") wireAnswers();
         if (meta.id === "resume") wireResume();
-        if (meta.id === "settings") await wireSettings();
+        if (meta.id === "settings") { await wireSettings(); await wireSecrets(); }
       }
     } catch (error) {
       el("view").innerHTML = `<div class="empty"><h3>Something went wrong</h3>

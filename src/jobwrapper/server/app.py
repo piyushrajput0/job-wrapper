@@ -195,6 +195,114 @@ def create_app() -> FastAPI:
         return {"ats": found.ats, "token": found.token, "company": found.company,
                 "id": source_id, "saved": bool(payload.get("save"))}
 
+    # ------------------------------------------------------------------ secrets
+    @app.get("/api/secrets")
+    def read_secrets(s: AppState = Depends(get_state)) -> dict[str, Any]:
+        """Never returns the key itself - only whether one is set, and its last four."""
+        import os
+
+        from ..vault import Vault
+
+        env_key = bool(os.environ.get("ANTHROPIC_API_KEY"))
+        stored = ""
+        try:
+            stored = Vault(interactive=False).get_api_key("anthropic")
+        except Exception as exc:
+            log.debug("vault read failed: %s", exc)
+        return {
+            "anthropic": {
+                "set": bool(stored) or env_key,
+                "source": "environment" if env_key else ("saved" if stored else "none"),
+                "hint": f"…{stored[-4:]}" if stored else "",
+                "usable": s.llm.available(),
+            }
+        }
+
+    @app.put("/api/secrets")
+    def write_secrets(payload: dict[str, Any] = Body(...),
+                      s: AppState = Depends(get_state)) -> dict[str, Any]:
+        from ..vault import Vault
+
+        key = (payload.get("anthropic_api_key") or "").strip()
+        vault = Vault(interactive=False)
+        if not key:
+            vault.clear_api_key("anthropic")
+            s.llm.forget_key()
+            return {"ok": True, "cleared": True}
+        if not key.startswith("sk-"):
+            raise HTTPException(status_code=422,
+                                detail="that does not look like an Anthropic API key (sk-…)")
+        vault.set_api_key("anthropic", key)
+        s.llm.forget_key()
+        return {"ok": True, "usable": s.llm.available()}
+
+    @app.post("/api/secrets/test")
+    def test_secret(s: AppState = Depends(get_state)) -> dict[str, Any]:
+        """One tiny call, so the user can confirm the key works before a real run."""
+        s.llm.forget_key()
+        if not s.llm.available():
+            return {"ok": False, "error": "no key found"}
+        try:
+            reply = s.llm.text(system="Reply with the single word: ready.",
+                               prompt="ping", effort="low", max_tokens=16)
+            return {"ok": True, "model": s.config.llm.model, "reply": reply[:40],
+                    "cost_usd": round(s.llm.cost_so_far(), 5)}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)[:300]}
+
+    # ------------------------------------------------------------------ autopilot
+    @app.post("/api/autopilot")
+    def start_autopilot(payload: dict[str, Any] = Body(default={}),
+                        s: AppState = Depends(get_state)) -> dict[str, Any]:
+        from ..pipeline import Autopilot
+
+        if registry.running("autopilot"):
+            raise HTTPException(status_code=409, detail="a run is already in progress")
+
+        missing = s.profile.missing_required()
+        if missing:
+            raise HTTPException(status_code=400,
+                                detail=f"profile incomplete: {', '.join(missing)}")
+
+        limit = int(payload.get("limit") or 5)
+        autonomy = payload.get("autonomy") or s.config.apply.autonomy
+        do_search = bool(payload.get("search", True))
+        do_overleaf = bool(payload.get("overleaf", True))
+        job_ids = payload.get("job_ids") or None
+
+        def run(task: Any) -> dict[str, Any]:
+            store = Store()
+            config = s.config.model_copy(deep=True)
+            config.apply.autonomy = autonomy
+            pilot = Autopilot(config, store, s.profile, s.master, s.llm,
+                              on_progress=lambda e: task.emit(e.as_dict()))
+            task.controller = pilot
+            try:
+                return pilot.run(limit=limit, do_search=do_search, do_overleaf=do_overleaf,
+                                 job_ids=job_ids).as_dict()
+            finally:
+                store.close()
+
+        return registry.start("autopilot", run).as_dict()
+
+    @app.post("/api/autopilot/stop")
+    def stop_autopilot(payload: dict[str, Any] = Body(default={})) -> dict[str, Any]:
+        task_id = payload.get("task_id")
+        if not task_id:
+            running = registry.running("autopilot")
+            task_id = running[0].id if running else None
+        if not task_id or not registry.stop(task_id):
+            raise HTTPException(status_code=404, detail="no stoppable run")
+        return {"ok": True, "task_id": task_id}
+
+    @app.get("/api/autopilot/current")
+    def current_autopilot() -> dict[str, Any]:
+        running = registry.running("autopilot")
+        if running:
+            return running[0].as_dict()
+        recent = [t for t in registry.all() if t.kind == "autopilot"]
+        return recent[0].as_dict() if recent else {"status": "idle"}
+
     # ------------------------------------------------------------------ jobs
     @app.get("/api/jobs")
     def list_jobs(status: str | None = None, min_score: int = 0, limit: int = 200,

@@ -61,10 +61,21 @@ uv run jobwrapper init
 
 `init` creates `~/.jobwrapper/`, writes a default config, and opens the web UI.
 
-Optional but recommended:
+### Your Claude API key
+
+Paste it into **Settings → Claude API key** in the web UI, or run `jobwrapper key`. It is
+encrypted at rest in `~/.jobwrapper/vault.enc` (AES-256-GCM, key in your macOS keychain), never
+written to the config file, and never logged. `ANTHROPIC_API_KEY` in the environment still works
+and takes precedence. There is a **Test** button that makes one tiny call so you can confirm it
+works before a real run.
+
+With a key: the model reads each job description, plans the résumé rewrite, and answers the
+awkward free-text questions. Without one: a deterministic ranker does the tailoring and a
+template writes the cover letter — blunter, but it never blocks you.
+
+Optional:
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...   # unlocks résumé tailoring and free-text answers
 brew install tectonic                 # real LaTeX output; otherwise PDFs render via Chromium
 ```
 
@@ -78,8 +89,35 @@ that Playwright already installed.
 
 ```bash
 uv run jobwrapper ui                          # fill in your profile (14 sections, 174 fields)
+uv run jobwrapper key                         # paste your Claude API key (stored encrypted)
 uv run jobwrapper resume import ~/resume.tex  # or: jobwrapper resume overleaf-pull
 uv run jobwrapper sources add https://stripe.com/jobs   # detects the ATS automatically
+uv run jobwrapper run --limit 5               # ← the whole loop, one job at a time
+```
+
+`run` is the one command that does everything:
+
+```
+pull your latest résumé from Overleaf
+  ▶ search every source ▶ de-duplicate ▶ score against your profile
+  ▶ shortlist what clears the floor and has not been applied to
+  ▶ then, one job at a time:
+        read the job description → pull out its keywords
+        → rewrite your résumé around them (truthfulness firewall)
+        → compile a PDF for that job
+        → open the application → fill it with that PDF
+        → stop for your review (or submit, at autonomy `auto`)
+     … pause, next job
+```
+
+The same run is a button on the **Autopilot** page of the web UI, with a live log of what it is
+doing to which job, and a stop button that finishes the job in flight and halts.
+
+<img alt="the autopilot page" src="docs/img/ui-autopilot.png" width="820">
+
+Step-by-step instead, if you prefer:
+
+```bash
 uv run jobwrapper search                      # fetch, dedupe, score
 uv run jobwrapper list --min-score 70
 uv run jobwrapper apply --limit 3             # fills everything, stops before submit
@@ -158,7 +196,8 @@ page you opened yourself. See [`docs/06-COMPLIANCE.md`](docs/06-COMPLIANCE.md).
 ## Commands
 
 ```
-jobwrapper init | ui | doctor | profile
+jobwrapper init | ui | doctor | profile | key
+jobwrapper run [--limit N] [--autonomy review|auto|dryrun] [--no-search] [--no-overleaf]
 jobwrapper search [--source ID] | list [--min-score N] | show <job-id>
 jobwrapper apply [--job ID] [--limit N] [--autonomy dryrun|review|auto]
 jobwrapper status | export --what jobs|applications

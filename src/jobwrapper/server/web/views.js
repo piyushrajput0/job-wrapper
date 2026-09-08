@@ -14,6 +14,59 @@ const Views = (() => {
     return days <= 0 ? "today" : days === 1 ? "yesterday" : `${days}d ago`;
   };
 
+  /* ------------------------------------------------------------ autopilot */
+  async function autopilot(api) {
+    const [status, current, secrets] = await Promise.all([
+      api.get("/api/status"), api.get("/api/autopilot/current"), api.get("/api/secrets"),
+    ]);
+    const running = current.status === "running";
+    const blocked = status.missing_required.length
+      ? `Fill in <a href="#/profile">your profile</a> first — missing: ${esc(status.missing_required.join(", "))}`
+      : !status.resume.master_loaded
+        ? `Import your résumé on the <a href="#/resume">Résumé</a> page first.`
+        : "";
+
+    return `
+    <div class="card">
+      <h3>Run the whole thing</h3>
+      <div class="blurb">Pulls your latest résumé from Overleaf, searches every source, then works
+        through the best matches <b>one at a time</b> — reading each job description, rewriting your
+        résumé around its keywords, compiling a PDF for that job, and filling the application with it.</div>
+      ${blocked ? `<div class="banner">${blocked}</div>` : ""}
+      ${!secrets.anthropic.usable ? `<div class="banner">No Claude API key yet — tailoring will use
+        the deterministic ranker. Paste a key in <a href="#/settings">Settings</a> to switch it on.</div>` : ""}
+      <div class="form-grid">
+        <div class="field" style="grid-column:span 3"><label>How many jobs</label>
+          <input type="number" id="ap-limit" value="5" min="1" max="50"></div>
+        <div class="field" style="grid-column:span 3"><label>Autonomy</label>
+          <select id="ap-autonomy">${["review", "auto", "dryrun"].map((v) =>
+            `<option value="${v}"${v === status.autonomy ? " selected" : ""}>${v}</option>`).join("")}</select>
+          <div class="help">review fills but never submits</div></div>
+        <div class="field" style="grid-column:span 3"><label>Search first</label>
+          <label class="switch"><input type="checkbox" id="ap-search" checked><span class="track"></span></label></div>
+        <div class="field" style="grid-column:span 3"><label>Pull from Overleaf</label>
+          <label class="switch"><input type="checkbox" id="ap-overleaf" checked><span class="track"></span></label></div>
+      </div>
+      <div class="toolbar" style="margin:14px 0 0">
+        <button class="btn primary" id="ap-start" ${running || blocked ? "disabled" : ""}>
+          ${running ? "Running…" : "Start run"}</button>
+        <button class="btn danger" id="ap-stop" ${running ? "" : "disabled"}>Stop after this job</button>
+        <span class="muted" id="ap-state">${running ? esc(current.progress || "starting…") : "idle"}</span>
+      </div>
+    </div>
+
+    <div class="card" id="ap-live" ${running || (current.events || []).length ? "" : "hidden"}>
+      <h3>Progress</h3>
+      <div class="ring" style="margin-bottom:10px">
+        <span id="ap-count" class="muted">—</span>
+        <span class="bar"><i id="ap-bar" style="width:0%"></i></span>
+      </div>
+      <div id="ap-log" class="mono" style="max-height:340px;overflow:auto;font-size:12.5px"></div>
+    </div>
+
+    <div class="card" id="ap-result" hidden><h3>Result</h3><div id="ap-result-body"></div></div>`;
+  }
+
   /* ------------------------------------------------------------ dashboard */
   async function dashboard(api) {
     const [status, jobs, apps] = await Promise.all([
@@ -215,7 +268,8 @@ const Views = (() => {
 
   /* ------------------------------------------------------------ settings */
   async function settings(api) {
-    const [config, status] = await Promise.all([api.get("/api/config"), api.get("/api/status")]);
+    const [config, status, SECRETS] = await Promise.all([
+      api.get("/api/config"), api.get("/api/status"), api.get("/api/secrets")]);
     const s = config.search, a = config.apply, r = config.resume, l = config.llm;
     const list = (v) => (v || []).join(", ");
     return `
@@ -294,6 +348,25 @@ const Views = (() => {
       </div>
     </div>
 
+    <div class="card"><h3>Claude API key</h3>
+      <div class="blurb">Paste your Anthropic key and the app uses it for résumé tailoring, JD
+        keyword extraction and answering awkward application questions. It is encrypted at rest in
+        <span class="mono">~/.jobwrapper/vault.enc</span> and never leaves this machine except in
+        calls to the Anthropic API.</div>
+      <div class="toolbar">
+        <input type="password" id="api-key" style="flex:1;min-width:280px"
+          placeholder="${SECRETS.anthropic.set ? `saved (${esc(SECRETS.anthropic.hint)}) — paste a new key to replace` : "sk-ant-..."}">
+        <button class="btn primary" id="btn-save-key">Save key</button>
+        <button class="btn" id="btn-test-key">Test</button>
+        <button class="btn danger" id="btn-clear-key">Remove</button>
+      </div>
+      <div class="muted" id="key-status" style="font-size:12.5px">
+        ${SECRETS.anthropic.set
+          ? `<span class="pill good">key ${esc(SECRETS.anthropic.source)}</span> tailoring and answering are on`
+          : `<span class="pill warn">no key</span> running on the deterministic fallbacks`}
+      </div>
+    </div>
+
     <div class="card"><h3>Sources</h3>
       <div class="blurb">Paste a company careers URL and the tool works out which ATS it uses.</div>
       <div class="toolbar">
@@ -315,5 +388,5 @@ const Views = (() => {
     <div class="toolbar"><button class="btn primary" id="btn-save-config">Save settings</button></div>`;
   }
 
-  return { dashboard, jobs, applications, answers, resume, settings, statusPill, scoreClass, when };
+  return { autopilot, dashboard, jobs, applications, answers, resume, settings, statusPill, scoreClass, when };
 })();
