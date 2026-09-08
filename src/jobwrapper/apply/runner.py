@@ -76,8 +76,11 @@ class ApplicationRunner:
         existing = self.store.applications.for_job(job.id)
         if existing and existing.status in {"submitted", "ready_for_review"}:
             return f"already {existing.status}"
-        if self.store.applications.count_today() >= apply_config.daily_cap:
-            return f"daily cap reached ({apply_config.daily_cap})"
+        # count attempts, not just submissions: at autonomy `review` nothing is ever submitted,
+        # so a submission-only cap meant no cap at all
+        attempts = self.store.applications.count_attempts_today()
+        if attempts >= apply_config.daily_cap:
+            return f"daily cap reached ({attempts}/{apply_config.daily_cap} today)"
         if self.store.applications.count_for_company(job.company) >= apply_config.per_company_cap:
             return f"per-company cap reached for {job.company}"
         if job.match_score < self.config.match.min_score_to_apply:
@@ -201,17 +204,6 @@ class ApplicationRunner:
             log.info("skip %s - %s", job.short(), blocked)
             return self.store.applications.save(application)
 
-        tailored, cover_path, cover_text = self.prepare_documents(job)
-        application.resume_path = tailored.pdf_path
-        application.resume_id = tailored.id
-        application.cover_letter_path = cover_path
-        application.log("resume_ready", pdf=tailored.pdf_path, ats_score=tailored.ats_score,
-                        coverage=tailored.keyword_coverage, violations=len(tailored.violations))
-        if not tailored.pdf_path:
-            application.status = "failed"
-            application.error = "resume PDF could not be produced"
-            return self.store.applications.save(application)
-
         application.status = "in_progress"
         self.store.applications.save(application)
 
@@ -226,6 +218,29 @@ class ApplicationRunner:
             application.status = "failed"
             application.error = "could not open the application page"
             return self.store.applications.save(application)
+
+        closed = adapter.is_closed(session)
+        if closed:
+            application.status = "skipped"
+            application.notes = f"posting is closed ({closed})"
+            application.log("closed", marker=closed)
+            self.store.jobs.set_status(job.id, "closed")
+            log.info("%s is closed - skipping and marking the job", job.short())
+            return self.store.applications.save(application)
+
+        # Only now is it worth tailoring: writing a resume for a posting that turns out to be
+        # closed burns model tokens and a compile for nothing.
+        tailored, cover_path, cover_text = self.prepare_documents(job)
+        application.resume_path = tailored.pdf_path
+        application.resume_id = tailored.id
+        application.cover_letter_path = cover_path
+        application.log("resume_ready", pdf=tailored.pdf_path, ats_score=tailored.ats_score,
+                        coverage=tailored.keyword_coverage, violations=len(tailored.violations))
+        if not tailored.pdf_path:
+            application.status = "failed"
+            application.error = "resume PDF could not be produced"
+            return self.store.applications.save(application)
+        self.store.applications.save(application)
 
         detected = self.catalog.detect_ats(session.page.url, session.html(40000))
         if detected != "generic" and detected != adapter.name:
@@ -357,6 +372,36 @@ class ApplicationRunner:
         self.store.events.log("application", outcome, ref=application.id, company=job.company,
                               title=job.title, url=application.url)
         return self.store.applications.save(application)
+
+    # ------------------------------------------------------------------ review
+    def replay(self, application: Application, session: BrowserSession) -> tuple[int, int]:
+        """Re-open a filled application and put the same values back on the page.
+
+        At autonomy `review` the browser closes when the run ends, taking the filled form with
+        it. The plan is stored, so re-filling is deterministic and costs nothing: no tailoring,
+        no model call, the same values the user already reviewed.
+        """
+        if not application.plan or not application.plan.fields:
+            return 0, 0
+        if not session.goto(application.url):
+            return 0, len(application.plan.fields)
+        session.dismiss_cookie_banner()
+
+        adapter = adapter_for(name=application.ats, url=application.url, catalog=self.catalog)
+        adapter.open_application(session, application.url)
+        adapter.before_fill(session)
+
+        filled = failed = 0
+        for item in application.plan.fields:
+            ok, error = session.apply_field(item, frame=item.frame)
+            if ok:
+                filled += 1
+            else:
+                failed += 1
+                log.debug("replay could not fill %s: %s", item.question[:50], error)
+        adapter.after_fill(session)
+        application.log("replayed", filled=filled, failed=failed)
+        return filled, failed
 
     # ------------------------------------------------------------------ batch
     def run(self, jobs: list[Job], limit: int | None = None) -> RunReport:

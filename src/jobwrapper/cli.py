@@ -448,6 +448,58 @@ def set_key(key: str = typer.Option(..., prompt="Anthropic API key", hide_input=
 
 
 @app.command()
+def review(app_id: str | None = typer.Argument(None, help="Application id; omit for the oldest"),
+           all_pending: bool = typer.Option(False, "--all", help="Work through every one")):
+    """Re-open a filled application in a browser, put the values back, and hand it to you.
+
+    `review` mode fills the form and then the run ends, closing the browser. This replays the
+    stored plan so you can check it and press submit yourself.
+    """
+    setup()
+    from .apply import ApplicationRunner, BrowserSession
+
+    config, store, profile_data, master = ctx()
+    config.apply.headless = False                       # you are the one looking at it
+
+    if app_id:
+        pending = [a for a in [store.applications.get(app_id)] if a]
+    else:
+        pending = [a for a in store.applications.list(limit=50)
+                   if a.status in {"ready_for_review", "needs_input"} and a.plan]
+        pending = pending if all_pending else pending[:1]
+    if not pending:
+        console.print("[yellow]nothing waiting for review[/yellow]")
+        raise typer.Exit(0)
+
+    runner = ApplicationRunner(config, store, profile_data, master)
+    with BrowserSession(config.apply) as session:
+        for application in pending:
+            console.print(Panel.fit(
+                f"[bold]{application.title}[/bold] at {application.company}\n"
+                f"{application.url}\n"
+                f"{len(application.plan.fields)} field(s) to put back"
+                + (f"\n[yellow]{application.notes}[/yellow]" if application.notes else ""),
+                title="review"))
+            filled, failed = runner.replay(application, session)
+            console.print(f"  refilled [green]{filled}[/green] field(s)"
+                          + (f", [yellow]{failed}[/yellow] could not be set" if failed else ""))
+            if application.resume_path:
+                console.print(f"  resume: {application.resume_path}")
+            console.print("[dim]Check the page, attach anything it still needs, and submit.[/dim]")
+            if typer.confirm("Did you submit it?", default=False):
+                from datetime import UTC, datetime
+
+                application.status = "submitted"
+                application.submitted_at = datetime.now(UTC).isoformat()
+                store.jobs.set_status(application.job_id, "submitted")
+                console.print("[green]recorded as submitted[/green]")
+            else:
+                console.print("[dim]left as it was[/dim]")
+            store.applications.save(application)
+    store.close()
+
+
+@app.command()
 def status(limit: int = typer.Option(15)):
     """Application pipeline at a glance."""
     setup()

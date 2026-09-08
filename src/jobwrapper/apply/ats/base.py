@@ -126,6 +126,16 @@ class ATSAdapter:
             return "error"
         return "unknown"
 
+    def is_closed(self, session: BrowserSession) -> str | None:
+        """A posting that has been filled or withdrawn. Not an error - just done."""
+        text = session.page_text(6000).lower()
+        markers = (self.spec.get("closed_text")
+                   or self.catalog.ats("generic").get("closed_text", []))
+        for phrase in markers:
+            if phrase in text:
+                return phrase
+        return None
+
     def validation_errors(self, session: BrowserSession) -> list[str]:
         selectors = ["[aria-invalid='true']", ".error", ".field-error", "[role='alert']",
                      "[class*='errorMessage']", "[data-automation-id='errorMessage']"]

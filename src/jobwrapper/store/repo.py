@@ -193,6 +193,15 @@ class ApplicationRepo:
             (f"{today}%",)).fetchone()
         return int(row["c"])
 
+    def count_attempts_today(self) -> int:
+        """Everything worked on today, however it ended - this is what the daily cap limits."""
+        today = datetime.now(UTC).date().isoformat()
+        row = self.conn.execute(
+            "SELECT COUNT(*) c FROM applications WHERE created_at LIKE ? "
+            "AND status IN ('submitted','ready_for_review','needs_input','failed','duplicate')",
+            (f"{today}%",)).fetchone()
+        return int(row["c"])
+
     def count_for_company(self, company: str) -> int:
         row = self.conn.execute(
             "SELECT COUNT(*) c FROM applications WHERE LOWER(company)=? AND status IN ('submitted','ready_for_review')",

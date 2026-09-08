@@ -128,6 +128,21 @@ uv run jobwrapper status
 
 ---
 
+### Reviewing what it filled
+
+At `review` the run fills each form and then ends — which closes the browser and takes the
+filled form with it. The fill plan is stored, so putting it back is one command (or the
+**Open & refill** button on the Applications page):
+
+```bash
+uv run jobwrapper review          # the oldest one waiting
+uv run jobwrapper review --all    # work through all of them
+```
+
+It re-opens the posting in a visible browser, replays the exact values you already reviewed —
+no re-tailoring, no model call — and waits while you check it, attach anything the page still
+needs, and press submit yourself. Answer the prompt and it records the outcome.
+
 ## The three autonomy levels
 
 | Level | What happens | Use it when |
@@ -200,6 +215,7 @@ jobwrapper init | ui | doctor | profile | key
 jobwrapper run [--limit N] [--autonomy review|auto|dryrun] [--no-search] [--no-overleaf]
 jobwrapper search [--source ID] | list [--min-score N] | show <job-id>
 jobwrapper apply [--job ID] [--limit N] [--autonomy dryrun|review|auto]
+jobwrapper review [<application-id>] [--all]
 jobwrapper status | export --what jobs|applications
 jobwrapper resume import <file> | tailor <job-id> | overleaf-auth | overleaf-pull
 jobwrapper sources list | add <careers-url> | kinds
@@ -255,7 +271,10 @@ Teaching it a new field is a one-line edit in `scripts/build_field_catalog.py`, 
 - Taleo is marked assisted-only: the tool advises, you drive.
 - File uploads cannot be automated from the extension — browsers forbid it. V1 (Playwright) can.
 - Deterministic tailoring without an API key is real but blunter than the model path.
-- Aggregator feeds go stale; per-company ATS boards are always fresher.
+- Aggregator feeds go stale; per-company ATS boards are always fresher. Postings that have
+  since closed are detected, skipped and marked, before any résumé is written for them.
+- A résumé imported from a PDF loses structure that the LaTeX source keeps. Point it at the
+  `.tex` when you have one.
 
 ## License
 

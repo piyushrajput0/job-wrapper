@@ -428,6 +428,34 @@
     });
   }
 
+  function wireApplications() {
+    document.querySelectorAll("[data-review]").forEach((button) => {
+      button.onclick = async () => {
+        const id = button.dataset.review;
+        button.innerHTML = '<span class="spin"></span> Opening';
+        try {
+          await api.post(`/api/applications/${id}/review`, {});
+          toast("Browser opening — the form is being refilled for you", "good");
+          button.outerHTML = `
+            <button class="btn sm primary" data-submitted="${id}">I submitted it</button>
+            <button class="btn sm" data-close="${id}">Close browser</button>`;
+          document.querySelector(`[data-submitted="${id}"]`).onclick = async () => {
+            await api.post(`/api/applications/${id}/review/close`, { submitted: true });
+            toast("Recorded as submitted", "good");
+            render();
+          };
+          document.querySelector(`[data-close="${id}"]`).onclick = async () => {
+            await api.post(`/api/applications/${id}/review/close`, { submitted: false });
+            render();
+          };
+        } catch (error) {
+          toast(Form.esc(error.message), "bad");
+          button.textContent = "Open & refill";
+        }
+      };
+    });
+  }
+
   function wireAnswers() {
     const filter = el("ans-q");
     if (filter) filter.oninput = () => {
@@ -552,6 +580,7 @@
         el("view").innerHTML = await Views[meta.id](api, params);
         if (meta.id === "autopilot") wireAutopilot();
         if (meta.id === "jobs") wireJobs(params);
+        if (meta.id === "applications") wireApplications();
         if (meta.id === "answers") wireAnswers();
         if (meta.id === "resume") wireResume();
         if (meta.id === "settings") { await wireSettings(); await wireSecrets(); }

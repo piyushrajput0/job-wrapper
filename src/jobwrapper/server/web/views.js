@@ -192,6 +192,8 @@ const Views = (() => {
             ${a.notes ? `<div class="banner">${esc(a.notes)}</div>` : ""}
             ${a.error ? `<div class="banner" style="border-left-color:var(--bad)">${esc(a.error)}</div>` : ""}
             <div class="toolbar" style="margin:0">
+              ${(a.plan?.fields || []).length && ["ready_for_review", "needs_input"].includes(a.status)
+                ? `<button class="btn sm primary" data-review="${esc(a.id)}">Open &amp; refill</button>` : ""}
               ${a.url ? `<a class="btn sm ghost" href="${esc(a.url)}" target="_blank" rel="noopener">Open posting</a>` : ""}
               ${a.resume_path ? `<a class="btn sm ghost" href="/api/artifact?path=${encodeURIComponent(a.resume_path)}" target="_blank">Resume PDF</a>` : ""}
               ${a.cover_letter_path ? `<a class="btn sm ghost" href="/api/artifact?path=${encodeURIComponent(a.cover_letter_path)}" target="_blank">Cover letter</a>` : ""}

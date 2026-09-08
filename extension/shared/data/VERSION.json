@@ -2,7 +2,7 @@
   "generated_from": "src/jobwrapper/data",
   "files": {
     "field_catalog.json": 61364,
-    "ats_maps.json": 15701,
+    "ats_maps.json": 18602,
     "question_patterns.json": 3976,
     "skill_taxonomy.json": 39716,
     "extract_fields.js": 8116

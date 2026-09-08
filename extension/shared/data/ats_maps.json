@@ -1,13 +1,26 @@
 {
-  "version": 2,
+  "version": 3,
   "note": "Per-ATS detection signatures and direct name/id -> catalog-key maps. Shared by the Python (Playwright) and JS (extension) resolvers; a hit here is the highest-confidence resolution path.",
   "ats": {
     "greenhouse": {
       "label": "Greenhouse",
       "detect": {
-        "url": ["boards.greenhouse.io", "job-boards.greenhouse.io", "greenhouse.io/embed/job_app", "my.greenhouse.io"],
-        "dom": ["#grnhse_app", "#grnhse_iframe", "form#application_form", "#application-form", "[id^='job_application']"],
-        "text": ["Powered by Greenhouse"]
+        "url": [
+          "boards.greenhouse.io",
+          "job-boards.greenhouse.io",
+          "greenhouse.io/embed/job_app",
+          "my.greenhouse.io"
+        ],
+        "dom": [
+          "#grnhse_app",
+          "#grnhse_iframe",
+          "form#application_form",
+          "#application-form",
+          "[id^='job_application']"
+        ],
+        "text": [
+          "Powered by Greenhouse"
+        ]
       },
       "iframe": "#grnhse_iframe",
       "name_map": {
@@ -50,10 +63,25 @@
         "resume_file": "input[type=file][name*='resume'], input[type=file]#resume, [data-field='resume'] input[type=file]",
         "cover_letter_file": "input[type=file][name*='cover'], input[type=file]#cover_letter"
       },
-      "autocomplete_fields": ["location"],
-      "submit": ["#submit_app", "input[type=submit][value*='Submit']", "button[type=submit]", "button:has-text('Submit Application')"],
-      "success_text": ["thank you for applying", "your application has been submitted", "application received", "thanks for applying"],
-      "duplicate_text": ["you have already applied", "already submitted an application"],
+      "autocomplete_fields": [
+        "location"
+      ],
+      "submit": [
+        "#submit_app",
+        "input[type=submit][value*='Submit']",
+        "button[type=submit]",
+        "button:has-text('Submit Application')"
+      ],
+      "success_text": [
+        "thank you for applying",
+        "your application has been submitted",
+        "application received",
+        "thanks for applying"
+      ],
+      "duplicate_text": [
+        "you have already applied",
+        "already submitted an application"
+      ],
       "quirks": [
         "Location is a Google Places autocomplete: type, wait for the listbox, click a suggestion.",
         "File inputs are visually hidden behind a styled button; set files on the input directly.",
@@ -64,9 +92,18 @@
     "lever": {
       "label": "Lever",
       "detect": {
-        "url": ["jobs.lever.co", "hire.lever.co"],
-        "dom": ["form.application-form", ".application-page", "[data-qa='application-form']"],
-        "text": ["Powered by Lever"]
+        "url": [
+          "jobs.lever.co",
+          "hire.lever.co"
+        ],
+        "dom": [
+          "form.application-form",
+          ".application-page",
+          "[data-qa='application-form']"
+        ],
+        "text": [
+          "Powered by Lever"
+        ]
       },
       "name_map": {
         "name": "full_name",
@@ -94,9 +131,19 @@
       "file_inputs": {
         "resume_file": "input[type=file][name='resume'], input[type=file]#resume-upload-input"
       },
-      "submit": ["button[type=submit]", "#btn-submit", "button:has-text('Submit application')"],
-      "success_text": ["thank you for applying", "application submitted", "we have received your application"],
-      "duplicate_text": ["already applied"],
+      "submit": [
+        "button[type=submit]",
+        "#btn-submit",
+        "button:has-text('Submit application')"
+      ],
+      "success_text": [
+        "thank you for applying",
+        "application submitted",
+        "we have received your application"
+      ],
+      "duplicate_text": [
+        "already applied"
+      ],
       "quirks": [
         "Single 'name' field - use the profile display name, not first/last.",
         "Custom questions are cards[<cardId>][<fieldName>]; the human-readable label is the sibling text.",
@@ -106,9 +153,18 @@
     "ashby": {
       "label": "Ashby",
       "detect": {
-        "url": ["jobs.ashbyhq.com", "ashbyhq.com/embed"],
-        "dom": ["._container_", "[class*='ashby-application-form']", "#ashby_embed"],
-        "text": ["Powered by Ashby"]
+        "url": [
+          "jobs.ashbyhq.com",
+          "ashbyhq.com/embed"
+        ],
+        "dom": [
+          "._container_",
+          "[class*='ashby-application-form']",
+          "#ashby_embed"
+        ],
+        "text": [
+          "Powered by Ashby"
+        ]
       },
       "name_map": {
         "_systemfield_name": "full_name",
@@ -121,9 +177,18 @@
       "file_inputs": {
         "resume_file": "input[type=file]"
       },
-      "submit": ["button[type=submit]", "button:has-text('Submit Application')"],
-      "success_text": ["thank you", "application submitted", "we received your application"],
-      "duplicate_text": ["already applied"],
+      "submit": [
+        "button[type=submit]",
+        "button:has-text('Submit Application')"
+      ],
+      "success_text": [
+        "thank you",
+        "application submitted",
+        "we received your application"
+      ],
+      "duplicate_text": [
+        "already applied"
+      ],
       "quirks": [
         "React-controlled: values must be typed through real events, not assigned to .value.",
         "Fields key off _fieldEntryId; labels are the only stable human-readable anchor.",
@@ -133,9 +198,17 @@
     "workable": {
       "label": "Workable",
       "detect": {
-        "url": ["apply.workable.com", "workable.com/j/"],
-        "dom": ["[data-ui='application-form']", "[data-ui='firstname']"],
-        "text": ["Powered by Workable"]
+        "url": [
+          "apply.workable.com",
+          "workable.com/j/"
+        ],
+        "dom": [
+          "[data-ui='application-form']",
+          "[data-ui='firstname']"
+        ],
+        "text": [
+          "Powered by Workable"
+        ]
       },
       "name_map": {
         "firstname": "first_name",
@@ -160,18 +233,39 @@
           "github-url": "link_github"
         }
       },
-      "file_inputs": {"resume_file": "input[type=file]"},
-      "submit": ["button[type=submit]", "[data-ui='submit-application']"],
-      "success_text": ["thank you for applying", "application submitted"],
-      "duplicate_text": ["already applied"],
-      "quirks": ["data-ui attributes are the stable hooks; name attributes vary by tenant."]
+      "file_inputs": {
+        "resume_file": "input[type=file]"
+      },
+      "submit": [
+        "button[type=submit]",
+        "[data-ui='submit-application']"
+      ],
+      "success_text": [
+        "thank you for applying",
+        "application submitted"
+      ],
+      "duplicate_text": [
+        "already applied"
+      ],
+      "quirks": [
+        "data-ui attributes are the stable hooks; name attributes vary by tenant."
+      ]
     },
     "smartrecruiters": {
       "label": "SmartRecruiters",
       "detect": {
-        "url": ["jobs.smartrecruiters.com", "careers.smartrecruiters.com", "smartrecruiters.com/job"],
-        "dom": ["#application-form", "[data-test='application-form']"],
-        "text": ["Powered by SmartRecruiters"]
+        "url": [
+          "jobs.smartrecruiters.com",
+          "careers.smartrecruiters.com",
+          "smartrecruiters.com/job"
+        ],
+        "dom": [
+          "#application-form",
+          "[data-test='application-form']"
+        ],
+        "text": [
+          "Powered by SmartRecruiters"
+        ]
       },
       "name_map": {
         "firstName": "first_name",
@@ -190,18 +284,41 @@
         "email": "email",
         "phoneNumber": "phone"
       },
-      "file_inputs": {"resume_file": "input[type=file]"},
-      "submit": ["button[type=submit]", "#js-application-submit-button"],
-      "success_text": ["thank you", "application received"],
-      "duplicate_text": ["already applied"],
-      "quirks": ["Offers a LinkedIn/Indeed import bar - dismiss it before filling."]
+      "file_inputs": {
+        "resume_file": "input[type=file]"
+      },
+      "submit": [
+        "button[type=submit]",
+        "#js-application-submit-button"
+      ],
+      "success_text": [
+        "thank you",
+        "application received"
+      ],
+      "duplicate_text": [
+        "already applied"
+      ],
+      "quirks": [
+        "Offers a LinkedIn/Indeed import bar - dismiss it before filling."
+      ]
     },
     "workday": {
       "label": "Workday",
       "detect": {
-        "url": ["myworkdayjobs.com", "wd1.myworkday", "wd3.myworkday", "wd5.myworkday"],
-        "dom": ["[data-automation-id='jobPostingHeader']", "[data-automation-id='applyFlowContainer']", "[data-automation-id='legalNameSection']"],
-        "text": ["Workday"]
+        "url": [
+          "myworkdayjobs.com",
+          "wd1.myworkday",
+          "wd3.myworkday",
+          "wd5.myworkday"
+        ],
+        "dom": [
+          "[data-automation-id='jobPostingHeader']",
+          "[data-automation-id='applyFlowContainer']",
+          "[data-automation-id='legalNameSection']"
+        ],
+        "text": [
+          "Workday"
+        ]
       },
       "requires_account": true,
       "automation_id_map": {
@@ -244,12 +361,36 @@
         "resumeUpload": "resume_file",
         "file-upload-input-ref": "resume_file"
       },
-      "file_inputs": {"resume_file": "input[data-automation-id='file-upload-input-ref']"},
-      "next": ["[data-automation-id='bottom-navigation-next-button']", "[data-automation-id='pageFooterNextButton']", "button:has-text('Save and Continue')"],
-      "submit": ["[data-automation-id='bottom-navigation-next-button']", "button:has-text('Submit')"],
-      "success_text": ["you have successfully submitted", "thank you for applying", "application submitted"],
-      "duplicate_text": ["you have already applied", "already submitted"],
-      "steps": ["Start", "My Information", "My Experience", "Application Questions", "Voluntary Disclosures", "Self Identify", "Review"],
+      "file_inputs": {
+        "resume_file": "input[data-automation-id='file-upload-input-ref']"
+      },
+      "next": [
+        "[data-automation-id='bottom-navigation-next-button']",
+        "[data-automation-id='pageFooterNextButton']",
+        "button:has-text('Save and Continue')"
+      ],
+      "submit": [
+        "[data-automation-id='bottom-navigation-next-button']",
+        "button:has-text('Submit')"
+      ],
+      "success_text": [
+        "you have successfully submitted",
+        "thank you for applying",
+        "application submitted"
+      ],
+      "duplicate_text": [
+        "you have already applied",
+        "already submitted"
+      ],
+      "steps": [
+        "Start",
+        "My Information",
+        "My Experience",
+        "Application Questions",
+        "Voluntary Disclosures",
+        "Self Identify",
+        "Review"
+      ],
       "quirks": [
         "Requires an account: sign in, else register (email + generated password).",
         "Every dropdown is a custom listbox: click the button, wait for [role=option], click the option.",
@@ -261,46 +402,109 @@
     "icims": {
       "label": "iCIMS",
       "detect": {
-        "url": ["icims.com", "careers-"],
-        "dom": ["#icims_content_iframe", ".iCIMS_MainWrapper", "#icims_mainWrapper"],
-        "text": ["iCIMS"]
+        "url": [
+          "icims.com",
+          "careers-"
+        ],
+        "dom": [
+          "#icims_content_iframe",
+          ".iCIMS_MainWrapper",
+          "#icims_mainWrapper"
+        ],
+        "text": [
+          "iCIMS"
+        ]
       },
       "iframe": "#icims_content_iframe",
       "name_map": {},
-      "file_inputs": {"resume_file": "input[type=file]"},
-      "submit": ["input[value*='Submit']", "button:has-text('Submit')", "#quickApplyBtn"],
-      "success_text": ["thank you for your interest", "application received"],
-      "duplicate_text": ["already applied"],
-      "quirks": ["Deeply iframe-nested; resolve fields inside #icims_content_iframe."]
+      "file_inputs": {
+        "resume_file": "input[type=file]"
+      },
+      "submit": [
+        "input[value*='Submit']",
+        "button:has-text('Submit')",
+        "#quickApplyBtn"
+      ],
+      "success_text": [
+        "thank you for your interest",
+        "application received"
+      ],
+      "duplicate_text": [
+        "already applied"
+      ],
+      "quirks": [
+        "Deeply iframe-nested; resolve fields inside #icims_content_iframe."
+      ]
     },
     "taleo": {
       "label": "Taleo",
       "assisted_only": true,
       "detect": {
-        "url": ["taleo.net", "tbe.taleo.net"],
-        "dom": ["#requisitionDescriptionInterface", ".taleoform"],
-        "text": ["Taleo"]
+        "url": [
+          "taleo.net",
+          "tbe.taleo.net"
+        ],
+        "dom": [
+          "#requisitionDescriptionInterface",
+          ".taleoform"
+        ],
+        "text": [
+          "Taleo"
+        ]
       },
       "name_map": {},
-      "submit": ["input[value*='Submit']"],
-      "success_text": ["thank you"],
-      "quirks": ["Legacy frameset markup, aggressive session validation - human drives, tool advises."]
+      "submit": [
+        "input[value*='Submit']"
+      ],
+      "success_text": [
+        "thank you"
+      ],
+      "quirks": [
+        "Legacy frameset markup, aggressive session validation - human drives, tool advises."
+      ]
     },
     "successfactors": {
       "label": "SAP SuccessFactors",
       "detect": {
-        "url": ["successfactors.com", "career5.successfactors", "jobs.sap.com"],
-        "dom": [".jobDetail", "#careerSiteApplyButton"],
-        "text": ["SuccessFactors"]
+        "url": [
+          "successfactors.com",
+          "career5.successfactors",
+          "jobs.sap.com"
+        ],
+        "dom": [
+          ".jobDetail",
+          "#careerSiteApplyButton"
+        ],
+        "text": [
+          "SuccessFactors"
+        ]
       },
       "name_map": {},
-      "submit": ["button:has-text('Submit')"],
-      "success_text": ["thank you"],
-      "quirks": ["Requires an account on most tenants."]
+      "submit": [
+        "button:has-text('Submit')"
+      ],
+      "success_text": [
+        "thank you"
+      ],
+      "quirks": [
+        "Requires an account on most tenants."
+      ]
     },
     "jobvite": {
       "label": "Jobvite",
-      "detect": {"url": ["jobs.jobvite.com", "jobvite.com/careers"], "dom": [".jv-page-apply", "#jv-careersite"], "text": ["Powered by Jobvite"]},
+      "detect": {
+        "url": [
+          "jobs.jobvite.com",
+          "jobvite.com/careers"
+        ],
+        "dom": [
+          ".jv-page-apply",
+          "#jv-careersite"
+        ],
+        "text": [
+          "Powered by Jobvite"
+        ]
+      },
       "name_map": {
         "firstName": "first_name",
         "lastName": "last_name",
@@ -308,14 +512,33 @@
         "phone": "phone",
         "resume": "resume_file"
       },
-      "file_inputs": {"resume_file": "input[type=file]"},
-      "submit": ["input[type=submit]", "button:has-text('Send Application')"],
-      "success_text": ["thank you"],
+      "file_inputs": {
+        "resume_file": "input[type=file]"
+      },
+      "submit": [
+        "input[type=submit]",
+        "button:has-text('Send Application')"
+      ],
+      "success_text": [
+        "thank you"
+      ],
       "quirks": []
     },
     "bamboohr": {
       "label": "BambooHR",
-      "detect": {"url": ["bamboohr.com/jobs", "bamboohr.co.uk/jobs"], "dom": ["#BambooHR-ATS", ".BambooHR-ATS-board"], "text": ["Powered by BambooHR"]},
+      "detect": {
+        "url": [
+          "bamboohr.com/jobs",
+          "bamboohr.co.uk/jobs"
+        ],
+        "dom": [
+          "#BambooHR-ATS",
+          ".BambooHR-ATS-board"
+        ],
+        "text": [
+          "Powered by BambooHR"
+        ]
+      },
       "name_map": {
         "firstName": "first_name",
         "lastName": "last_name",
@@ -329,14 +552,33 @@
         "linkedinUrl": "link_linkedin",
         "websiteUrl": "link_website"
       },
-      "file_inputs": {"resume_file": "input[type=file]"},
-      "submit": ["button[type=submit]", "button:has-text('Submit Application')"],
-      "success_text": ["thank you", "application submitted"],
+      "file_inputs": {
+        "resume_file": "input[type=file]"
+      },
+      "submit": [
+        "button[type=submit]",
+        "button:has-text('Submit Application')"
+      ],
+      "success_text": [
+        "thank you",
+        "application submitted"
+      ],
       "quirks": []
     },
     "recruitee": {
       "label": "Recruitee",
-      "detect": {"url": ["recruitee.com"], "dom": [".c-application-form", "#offer-form"], "text": ["Powered by Recruitee"]},
+      "detect": {
+        "url": [
+          "recruitee.com"
+        ],
+        "dom": [
+          ".c-application-form",
+          "#offer-form"
+        ],
+        "text": [
+          "Powered by Recruitee"
+        ]
+      },
       "name_map": {
         "candidate[name]": "full_name",
         "candidate[email]": "email",
@@ -345,20 +587,66 @@
         "candidate[photo]": "",
         "candidate[cv]": "resume_file"
       },
-      "file_inputs": {"resume_file": "input[type=file]"},
-      "submit": ["button[type=submit]"],
-      "success_text": ["thank you"],
+      "file_inputs": {
+        "resume_file": "input[type=file]"
+      },
+      "submit": [
+        "button[type=submit]"
+      ],
+      "success_text": [
+        "thank you"
+      ],
       "quirks": []
     },
     "generic": {
       "label": "Generic career site",
-      "detect": {"url": [], "dom": ["form"], "text": []},
+      "detect": {
+        "url": [],
+        "dom": [
+          "form"
+        ],
+        "text": []
+      },
       "name_map": {},
-      "file_inputs": {"resume_file": "input[type=file]"},
-      "submit": ["button[type=submit]", "input[type=submit]", "button:has-text('Submit')", "button:has-text('Apply')", "button:has-text('Send application')"],
-      "success_text": ["thank you for applying", "application submitted", "application received", "we have received your application", "thanks for your interest"],
-      "duplicate_text": ["already applied", "duplicate application"],
-      "quirks": ["Resolution is entirely label-driven; this is the V2 default."]
+      "file_inputs": {
+        "resume_file": "input[type=file]"
+      },
+      "submit": [
+        "button[type=submit]",
+        "input[type=submit]",
+        "button:has-text('Submit')",
+        "button:has-text('Apply')",
+        "button:has-text('Send application')"
+      ],
+      "success_text": [
+        "thank you for applying",
+        "application submitted",
+        "application received",
+        "we have received your application",
+        "thanks for your interest"
+      ],
+      "duplicate_text": [
+        "already applied",
+        "duplicate application"
+      ],
+      "quirks": [
+        "Resolution is entirely label-driven; this is the V2 default."
+      ],
+      "closed_text": [
+        "no longer accepting applications",
+        "this job is no longer available",
+        "position has been filled",
+        "position is closed",
+        "posting is closed",
+        "job posting has expired",
+        "this posting has closed",
+        "applications are closed",
+        "we are no longer accepting",
+        "job not found",
+        "position no longer available",
+        "this role has been filled",
+        "sorry, this job is no longer"
+      ]
     }
   }
 }

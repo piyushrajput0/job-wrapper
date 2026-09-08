@@ -342,6 +342,73 @@ def create_app() -> FastAPI:
                           s: AppState = Depends(get_state)) -> list[dict[str, Any]]:
         return [a.model_dump(mode="json") for a in s.store.applications.list(status=status, limit=limit)]
 
+    @app.post("/api/applications/{application_id}/review")
+    def review_application(application_id: str,
+                           s: AppState = Depends(get_state)) -> dict[str, Any]:
+        """Re-open a filled application in a visible browser and put the values back."""
+        from ..apply import ApplicationRunner, BrowserSession
+
+        application = s.store.applications.get(application_id)
+        if not application:
+            raise HTTPException(status_code=404, detail="unknown application")
+        if not (application.plan and application.plan.fields):
+            raise HTTPException(status_code=400, detail="this application has no stored plan")
+        if registry.running("review"):
+            raise HTTPException(status_code=409, detail="a review browser is already open")
+
+        class Handle:
+            """Keeps the browser open until the user is finished with it."""
+
+            def __init__(self) -> None:
+                self.done = False
+                self.submitted = False
+
+            def stop(self) -> None:
+                self.done = True
+
+        def run(task: Any) -> dict[str, Any]:
+            import time
+
+            store = Store()
+            config = s.config.model_copy(deep=True)
+            config.apply.headless = False
+            handle = Handle()
+            task.controller = handle
+            runner = ApplicationRunner(config, store, s.profile, s.master, s.llm)
+            try:
+                with BrowserSession(config.apply) as session:
+                    filled, failed = runner.replay(application, session)
+                    task.emit({"stage": "review", "message":
+                               f"refilled {filled} field(s); check the browser and submit",
+                               "company": application.company, "title": application.title})
+                    deadline = time.monotonic() + 20 * 60
+                    while not handle.done and time.monotonic() < deadline:
+                        time.sleep(2)
+                    if handle.submitted:
+                        from datetime import UTC, datetime
+
+                        application.status = "submitted"
+                        application.submitted_at = datetime.now(UTC).isoformat()
+                        store.jobs.set_status(application.job_id, "submitted")
+                    store.applications.save(application)
+                    return {"filled": filled, "failed": failed,
+                            "submitted": handle.submitted}
+            finally:
+                store.close()
+
+        return registry.start("review", run).as_dict()
+
+    @app.post("/api/applications/{application_id}/review/close")
+    def close_review(application_id: str, payload: dict[str, Any] = Body(default={}),
+                     ) -> dict[str, Any]:
+        running = registry.running("review")
+        if not running:
+            raise HTTPException(status_code=404, detail="no review browser is open")
+        handle = running[0].controller
+        handle.submitted = bool(payload.get("submitted"))
+        handle.done = True
+        return {"ok": True, "submitted": handle.submitted}
+
     @app.post("/api/apply")
     def start_apply(payload: dict[str, Any] = Body(...),
                     s: AppState = Depends(get_state)) -> dict[str, Any]:

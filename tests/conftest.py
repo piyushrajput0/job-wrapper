@@ -70,9 +70,10 @@ def job():
 
 
 @pytest.fixture
-def store():
+def store(tmp_path):
+    """A database per test - a shared file lets one test's rows fail another's assertions."""
     from jobwrapper.store import Store
 
-    s = Store(Path(_TMP) / "test.db")
+    s = Store(tmp_path / "test.db")
     yield s
     s.close()

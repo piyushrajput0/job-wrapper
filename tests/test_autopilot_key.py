@@ -96,3 +96,107 @@ def test_autopilot_emits_progress_to_a_callback(store, profile):
               on_progress=seen.append).run(limit=1, do_search=False, do_overleaf=False)
     assert [e.stage for e in seen][-1] == "done"
     assert all(hasattr(e, "as_dict") for e in seen)
+
+
+def test_daily_cap_counts_attempts_not_just_submissions(store, profile):
+    """At autonomy `review` nothing is ever submitted, so a submission-only cap capped nothing."""
+    from jobwrapper.apply import ApplicationRunner
+    from jobwrapper.models import Job
+
+    config = Config()
+    config.apply.daily_cap = 2
+    config.match.min_score_to_apply = 10
+    for i in range(2):
+        store.applications.save(Application(job_id=f"cap{i}", company=f"Co{i}", title="Eng",
+                                            status="ready_for_review"))
+    runner = ApplicationRunner(config, store, profile, MasterResume())
+    job = Job(source="lever", company="Next Co", title="Engineer",
+              url="https://example.com/apply", match_score=90)
+    assert "daily cap" in (runner.guardrail_block(job) or "")
+
+
+def test_closed_postings_are_recognised():
+    """A filled posting is a skip, not a failure - and the job should stop coming back."""
+    from jobwrapper.apply.ats import adapter_for
+
+    adapter = adapter_for(name="generic")
+    markers = adapter.catalog.ats("generic")["closed_text"]
+    assert "no longer accepting applications" in markers
+
+    class FakeSession:
+        def page_text(self, limit=6000):
+            return "Thanks for your interest. This job is no longer available."
+
+    assert adapter.is_closed(FakeSession()) == "this job is no longer available"
+
+
+def test_open_posting_is_not_flagged_as_closed():
+    from jobwrapper.apply.ats import adapter_for
+
+    class FakeSession:
+        def page_text(self, limit=6000):
+            return "Senior Backend Engineer. Apply now. We are hiring across the team."
+
+    assert adapter_for(name="generic").is_closed(FakeSession()) is None
+
+
+def test_review_replays_the_stored_plan_without_the_model(store, profile, monkeypatch):
+    """Re-filling a reviewed application must be deterministic: same values, no model call."""
+    from jobwrapper.apply import ApplicationRunner
+    from jobwrapper.models.application import FilledField, FillPlan
+
+    plan = FillPlan(url="https://example.com/apply", fields=[
+        FilledField(selector="#fn", field_key="first_name", value="Alex", question="First Name"),
+        FilledField(selector="#em", field_key="email", value="a@example.com", question="Email"),
+    ])
+    application = Application(job_id="j1", company="Acme", title="Engineer",
+                              url="https://example.com/apply", status="ready_for_review",
+                              plan=plan)
+    store.applications.save(application)
+
+    calls: list[str] = []
+
+    class FakeSession:
+        page = None
+
+        def goto(self, url, wait="domcontentloaded"):
+            calls.append(f"goto:{url}")
+            return True
+
+        def dismiss_cookie_banner(self):
+            return False
+
+        def apply_field(self, item, frame=""):
+            calls.append(f"fill:{item.field_key}={item.value}")
+            return True, ""
+
+        def extract_fields(self):
+            return []
+
+    class FakeAdapter:
+        name = "generic"
+
+        def open_application(self, session, url):
+            return True
+
+        def before_fill(self, session):
+            pass
+
+        def after_fill(self, session):
+            pass
+
+    runner = ApplicationRunner(Config(), store, profile, MasterResume())
+    monkeypatch.setattr("jobwrapper.apply.runner.adapter_for", lambda **kw: FakeAdapter())
+    filled, failed = runner.replay(application, FakeSession())
+
+    assert (filled, failed) == (2, 0)
+    assert calls == ["goto:https://example.com/apply",
+                     "fill:first_name=Alex", "fill:email=a@example.com"]
+
+
+def test_review_of_an_application_with_no_plan_is_a_no_op(store, profile):
+    from jobwrapper.apply import ApplicationRunner
+
+    runner = ApplicationRunner(Config(), store, profile, MasterResume())
+    empty = Application(job_id="j2", company="Acme", title="Engineer", status="planned")
+    assert runner.replay(empty, object()) == (0, 0)

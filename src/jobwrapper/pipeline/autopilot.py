@@ -17,6 +17,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from ..config import Config
 from ..llm import LLMClient
@@ -24,6 +25,9 @@ from ..logging_setup import get
 from ..models import Application, Job, Profile
 from ..models.resume import MasterResume
 from ..store import Store
+
+if TYPE_CHECKING:                      # imported lazily at runtime to avoid a circular import
+    from ..apply.browser import BrowserSession
 
 log = get("autopilot")
 
@@ -175,11 +179,19 @@ class Autopilot:
         runner = ApplicationRunner(self.config, self.store, self.profile, self.master, self.llm)
         total = len(jobs)
 
-        with BrowserSession(self.config.apply) as session:
+        session = BrowserSession(self.config.apply)
+        session.start()
+        try:
             for index, job in enumerate(jobs, start=1):
                 if self._stop:
                     self._emit(AutopilotEvent("done", f"stopped after {index - 1} of {total}"))
                     break
+
+                # a crashed browser must cost one job, not the rest of the run
+                if not self._session_alive(session):
+                    self._emit(AutopilotEvent("apply", "browser died - restarting it",
+                                              index=index, total=total))
+                    session = self._restart(session)
 
                 self._emit(AutopilotEvent(
                     "tailor", "reading the job description and rewriting the résumé for it",
@@ -216,6 +228,11 @@ class Autopilot:
                     pause = self.config.apply.min_seconds_between_applications
                     if pause:
                         time.sleep(pause)
+        finally:
+            try:
+                session.stop()
+            except Exception:
+                pass
 
         self._emit(AutopilotEvent(
             "done", f"{self.report.submitted} submitted · "
@@ -224,6 +241,25 @@ class Autopilot:
         self.store.events.log("autopilot", "run finished", **{
             k: v for k, v in self.report.as_dict().items() if isinstance(v, (int, str))})
         return self.report
+
+    @staticmethod
+    def _session_alive(session: BrowserSession) -> bool:
+        try:
+            _ = session.page.url
+            return True
+        except Exception:
+            return False
+
+    def _restart(self, session: BrowserSession) -> BrowserSession:
+        from ..apply.browser import BrowserSession as Session
+
+        try:
+            session.stop()
+        except Exception:
+            pass
+        fresh = Session(self.config.apply)
+        fresh.start()
+        return fresh
 
     @staticmethod
     def _describe(application: Application) -> str:
