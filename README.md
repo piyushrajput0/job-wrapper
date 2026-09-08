@@ -12,6 +12,7 @@ Two editions, one brain:
 | Where it runs | Python CLI + Playwright + a local web UI | Chrome/Edge MV3 extension |
 | Job discovery | 19 adapters (Greenhouse, Lever, Ashby, Workday, …) | none — the page in front of you |
 | Résumé tailoring | in-process | via the local companion server |
+| Model | any of 10 providers, or none | same choice |
 | Form filling | Playwright, 9 ATS adapters | the DOM, same knowledge base |
 | Submits for you | only at `autonomy: auto`, within caps | never — it fills, you submit |
 
@@ -82,17 +83,32 @@ uv run jobwrapper init
 
 `init` creates `~/.jobwrapper/`, writes a default config, and opens the web UI.
 
-### Your Claude API key
+### Choosing a model
 
-Paste it into **Settings → Claude API key** in the web UI, or run `jobwrapper key`. It is
-encrypted at rest in `~/.jobwrapper/vault.enc` (AES-256-GCM, key in your macOS keychain), never
-written to the config file, and never logged. `ANTHROPIC_API_KEY` in the environment still works
-and takes precedence. There is a **Test** button that makes one tiny call so you can confirm it
-works before a real run.
+**Settings → AI model.** Pick a provider, pick a model, paste the key:
 
-With a key: the model reads each job description, plans the résumé rewrite, and answers the
-awkward free-text questions. Without one: a deterministic ranker does the tailoring and a
-template writes the cover letter — blunter, but it never blocks you.
+| | |
+|---|---|
+| Anthropic (Claude) · OpenAI · Google Gemini | the ones most people already pay for |
+| Groq · DeepSeek · Mistral · xAI · Together | cheaper or faster, same interface |
+| **OpenRouter** | one key, hundreds of models — the picker lists all of them live |
+| **Ollama** | runs on your machine. No key, no cost, nothing leaves the laptop |
+
+The model list is **fetched from the provider** when you open the picker, so it is never a stale
+hard-coded list — switching to OpenRouter shows its full catalogue. Anything not listed can be
+typed in as a custom model id.
+
+<img alt="choosing a provider and model" src="docs/img/ui-model-picker.png" width="820">
+
+Keys are encrypted at rest in `~/.jobwrapper/vault.enc` (AES-256-GCM, passphrase in your macOS
+keychain), never written to the config file and never logged. The matching environment variable
+(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GROQ_API_KEY`, …) still works and takes precedence.
+**Test it** makes one tiny call so you can confirm the setup before a real run.
+
+Anthropic gets structured output and prompt caching natively; every other provider goes through
+the OpenAI chat-completions interface they all implement. With no model configured at all, a
+deterministic ranker does the tailoring and a template writes the cover letter — blunter, but it
+never blocks you.
 
 Optional:
 
@@ -110,7 +126,7 @@ that Playwright already installed.
 
 ```bash
 uv run jobwrapper ui                          # fill in your profile (14 sections, 174 fields)
-uv run jobwrapper key                         # paste your Claude API key (stored encrypted)
+uv run jobwrapper model --provider anthropic   # or openai / groq / ollama / openrouter ...
 uv run jobwrapper resume import ~/resume.tex  # or: jobwrapper resume overleaf-pull
 uv run jobwrapper sources add https://stripe.com/jobs   # detects the ATS automatically
 uv run jobwrapper run --limit 5               # ← the whole loop, one job at a time
@@ -232,7 +248,7 @@ page you opened yourself. See [`docs/06-COMPLIANCE.md`](docs/06-COMPLIANCE.md).
 ## Commands
 
 ```
-jobwrapper app | init | ui | doctor | profile | key
+jobwrapper app | init | ui | doctor | profile | model [--show]
 jobwrapper run [--limit N] [--autonomy review|auto|dryrun] [--no-search] [--no-overleaf]
 jobwrapper search [--source ID] | list [--min-score N] | show <job-id>
 jobwrapper apply [--job ID] [--limit N] [--autonomy dryrun|review|auto]

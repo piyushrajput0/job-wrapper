@@ -37,8 +37,9 @@ const Views = (() => {
         Job Wrapper fills applications by driving a real browser, and one is not installed yet.
         <button class="btn sm primary" id="ap-install-browser" style="margin-left:8px">Install it (~150 MB)</button>
         <span class="muted" id="ap-browser-state"></span></div>` : ""}
-      ${!secrets.anthropic.usable ? `<div class="banner">No Claude API key yet — tailoring will use
-        the deterministic ranker. Paste a key in <a href="#/settings">Settings</a> to switch it on.</div>` : ""}
+      ${!secrets.current?.usable ? `<div class="banner">No AI model configured — tailoring will use
+        the deterministic ranker. Pick a provider in <a href="#/settings">Settings</a>
+        (a local Ollama is free) to switch it on.</div>` : ""}
       <div class="form-grid">
         <div class="field" style="grid-column:span 3"><label>How many jobs</label>
           <input type="number" id="ap-limit" value="5" min="1" max="50"></div>
@@ -274,8 +275,9 @@ const Views = (() => {
 
   /* ------------------------------------------------------------ settings */
   async function settings(api) {
-    const [config, status, SECRETS] = await Promise.all([
-      api.get("/api/config"), api.get("/api/status"), api.get("/api/secrets")]);
+    const [config, status, SECRETS, PROVIDERS] = await Promise.all([
+      api.get("/api/config"), api.get("/api/status"), api.get("/api/secrets"),
+      api.get("/api/providers")]);
     const s = config.search, a = config.apply, r = config.resume, l = config.llm;
     const list = (v) => (v || []).join(", ");
     return `
@@ -341,11 +343,10 @@ const Views = (() => {
             `<option value="${v}"${v === r.engine ? " selected" : ""}>${v}</option>`).join("")}</select></div>
         <div class="field" style="grid-column:span 8"><label>Overleaf git URL</label>
           <input type="text" id="r-overleaf" value="${esc(r.overleaf_git_url || "")}" placeholder="https://git.overleaf.com/&lt;project-id&gt;"></div>
-        <div class="field" style="grid-column:span 4"><label>Use Claude</label>
+        <div class="field" style="grid-column:span 4"><label>Use an AI model at all</label>
           <label class="switch"><input type="checkbox" id="l-enabled"${l.enabled ? " checked" : ""}><span class="track"></span>
-            <span class="muted">${status.llm.available ? "key detected" : "no key found"}</span></label></div>
-        <div class="field" style="grid-column:span 4"><label>Model</label>
-          <input type="text" id="l-model" value="${esc(l.model)}"></div>
+            <span class="muted">${status.llm.available ? "configured" : "not configured"}</span></label>
+          <div class="help">Off = deterministic ranker and template letter</div></div>
         <div class="field" style="grid-column:span 4"><label>Effort</label>
           <select id="l-effort">${["low", "medium", "high", "xhigh", "max"].map((v) =>
             `<option value="${v}"${v === l.effort ? " selected" : ""}>${v}</option>`).join("")}</select></div>
@@ -354,22 +355,38 @@ const Views = (() => {
       </div>
     </div>
 
-    <div class="card"><h3>Claude API key</h3>
-      <div class="blurb">Paste your Anthropic key and the app uses it for résumé tailoring, JD
-        keyword extraction and answering awkward application questions. It is encrypted at rest in
-        <span class="mono">~/.jobwrapper/vault.enc</span> and never leaves this machine except in
-        calls to the Anthropic API.</div>
-      <div class="toolbar">
-        <input type="password" id="api-key" style="flex:1;min-width:280px"
-          placeholder="${SECRETS.anthropic.set ? `saved (${esc(SECRETS.anthropic.hint)}) — paste a new key to replace` : "sk-ant-..."}">
-        <button class="btn primary" id="btn-save-key">Save key</button>
-        <button class="btn" id="btn-test-key">Test</button>
-        <button class="btn danger" id="btn-clear-key">Remove</button>
+    <div class="card"><h3>AI model</h3>
+      <div class="blurb">Job Wrapper reads job descriptions, rewrites your résumé around them and
+        answers awkward application questions. Pick whichever provider you already pay for — or run
+        one locally for free. Keys are encrypted at rest in
+        <span class="mono">~/.jobwrapper/vault.enc</span> and never leave this machine except in
+        calls to the provider you chose.</div>
+      <div class="form-grid">
+        <div class="field" style="grid-column:span 5"><label for="ai-provider">Provider</label>
+          <select id="ai-provider">${PROVIDERS.providers.map((p) =>
+            `<option value="${esc(p.id)}"${p.id === PROVIDERS.current.provider ? " selected" : ""}>
+               ${esc(p.label)}${p.has_key ? " ✓" : ""}</option>`).join("")}</select>
+          <div class="help" id="ai-provider-note"></div></div>
+        <div class="field" style="grid-column:span 7"><label for="ai-model">Model</label>
+          <div class="row" style="display:flex;gap:8px">
+            <select id="ai-model" style="flex:1"><option>loading…</option></select>
+            <button class="btn" id="ai-refresh" title="Ask the provider what it can run">↻</button>
+          </div>
+          <div class="help">Not listed? Type an exact model id below.</div></div>
+        <div class="field" style="grid-column:span 7" id="ai-key-field">
+          <label for="ai-key">API key</label>
+          <input type="password" id="ai-key" placeholder="paste a key to replace the saved one">
+          <div class="help" id="ai-key-help"></div></div>
+        <div class="field" style="grid-column:span 5"><label for="ai-model-custom">Custom model id</label>
+          <input type="text" id="ai-model-custom" placeholder="optional override"></div>
       </div>
-      <div class="muted" id="key-status" style="font-size:12.5px">
-        ${SECRETS.anthropic.set
-          ? `<span class="pill good">key ${esc(SECRETS.anthropic.source)}</span> tailoring and answering are on`
-          : `<span class="pill warn">no key</span> running on the deterministic fallbacks`}
+      <div class="toolbar" style="margin-top:12px">
+        <button class="btn primary" id="ai-save">Save</button>
+        <button class="btn" id="ai-test">Test it</button>
+        <button class="btn danger" id="ai-clear">Remove key</button>
+        <span class="muted" id="ai-status">${SECRETS.current.usable
+          ? `<span class="pill good">ready</span> ${esc(SECRETS.current.label)} · ${esc(SECRETS.current.model)}`
+          : `<span class="pill warn">not configured</span> running on the deterministic fallbacks`}</span>
       </div>
     </div>
 

@@ -23,6 +23,7 @@ from pydantic import BaseModel
 from .. import paths
 from ..config import LLMConfig
 from ..logging_setup import get
+from .providers import OpenAICompatibleClient, get_provider
 
 log = get("llm")
 T = TypeVar("T", bound=BaseModel)
@@ -114,16 +115,28 @@ class LLMClient:
         self._key: str | None = None
 
     # ------------------------------------------------------------------ availability
+    ENV_KEYS = {
+        "anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY",
+        "google": "GOOGLE_API_KEY", "groq": "GROQ_API_KEY", "mistral": "MISTRAL_API_KEY",
+        "deepseek": "DEEPSEEK_API_KEY", "xai": "XAI_API_KEY",
+        "openrouter": "OPENROUTER_API_KEY", "together": "TOGETHER_API_KEY",
+    }
+
+    @property
+    def provider(self):
+        return get_provider(self.config.provider)
+
     def api_key(self) -> str:
         """Environment first, then the key the user pasted into the UI (encrypted at rest)."""
         if self._key is not None:
             return self._key
-        self._key = os.environ.get("ANTHROPIC_API_KEY", "")
+        env_name = self.ENV_KEYS.get(self.config.provider, "")
+        self._key = os.environ.get(env_name, "") if env_name else ""
         if not self._key:
             try:
                 from ..vault import Vault
 
-                self._key = Vault(interactive=False).get_api_key("anthropic")
+                self._key = Vault(interactive=False).get_api_key(self.config.provider)
             except Exception as exc:
                 log.debug("could not read the API key from the vault: %s", exc)
                 self._key = ""
@@ -138,24 +151,32 @@ class LLMClient:
             return False
         if os.environ.get("JOBWRAPPER_NO_LLM"):
             return False
-        return bool(
-            self.api_key()
-            or os.environ.get("ANTHROPIC_AUTH_TOKEN")
-            or (Path.home() / ".config" / "anthropic").exists()
-        )
+        if not self.provider.needs_key:          # a local Ollama needs nothing
+            return True
+        if self.api_key():
+            return True
+        return self.config.provider == "anthropic" and bool(
+            os.environ.get("ANTHROPIC_AUTH_TOKEN")
+            or (Path.home() / ".config" / "anthropic").exists())
 
     def _ensure(self) -> Any:
         if not self.available():
             raise LLMUnavailable(
-                "No Claude credentials found. Set ANTHROPIC_API_KEY or run `ant auth login`; "
-                "the tool will use its deterministic fallbacks until then."
-            )
-        if self._client is None:
+                f"No API key for {self.provider.label}. Add one in Settings (or set "
+                f"{self.ENV_KEYS.get(self.config.provider, 'the provider env var')}); the tool "
+                f"uses its deterministic fallbacks until then.")
+        if self._client is not None:
+            return self._client
+
+        if self.provider.kind == "anthropic":
             import anthropic
 
             key = self.api_key()
             self._client = (anthropic.Anthropic(api_key=key, timeout=180.0, max_retries=3)
                             if key else anthropic.Anthropic(timeout=180.0, max_retries=3))
+        else:
+            self._client = OpenAICompatibleClient(self.provider, self.api_key(),
+                                                  self.config.model)
         return self._client
 
     # ------------------------------------------------------------------ calls
@@ -176,6 +197,14 @@ class LLMClient:
               max_tokens: int | None = None, model: str | None = None) -> T:
         """Structured call - the result is a validated pydantic model."""
         client = self._ensure()
+        if self.provider.kind != "anthropic":
+            payload = client.json_object(
+                system=f"{system}\n\n{cached_context or ''}".strip(), prompt=prompt,
+                schema=output_model.model_json_schema(),
+                max_tokens=max_tokens or self.config.max_tokens)
+            self._record_openai_usage(client)
+            return output_model.model_validate(payload)
+
         response = client.messages.parse(
             model=model or self.config.model,
             max_tokens=max_tokens or self.config.max_tokens,
@@ -196,6 +225,12 @@ class LLMClient:
              model: str | None = None) -> str:
         """Free-text call, used for cover letters and essay answers."""
         client = self._ensure()
+        if self.provider.kind != "anthropic":
+            out = client.text(system=f"{system}\n\n{cached_context or ''}".strip(),
+                              prompt=prompt, max_tokens=max_tokens or self.config.max_tokens)
+            self._record_openai_usage(client)
+            return out
+
         response = client.messages.create(
             model=model or self.config.model,
             max_tokens=max_tokens or self.config.max_tokens,
@@ -206,6 +241,13 @@ class LLMClient:
         )
         self.tracker.record(response)
         return "".join(b.text for b in response.content if b.type == "text").strip()
+
+    def _record_openai_usage(self, client: Any) -> None:
+        usage = getattr(client, "last_usage", None) or {}
+        self.tracker.usage.calls += 1
+        self.tracker.usage.input_tokens += int(usage.get("prompt_tokens", 0) or 0)
+        self.tracker.usage.output_tokens += int(usage.get("completion_tokens", 0) or 0)
+        self.tracker.flush()
 
     def cost_so_far(self) -> float:
         return self.tracker.usage.cost_usd(self.config.model)

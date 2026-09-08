@@ -44,20 +44,47 @@ def test_llm_client_prefers_the_environment(monkeypatch):
 
 
 def test_secrets_endpoint_never_returns_the_key(client):
-    client.put("/api/secrets", json={"anthropic_api_key": "sk-ant-abcdefgh1234"})
+    client.put("/api/secrets", json={"provider": "anthropic",
+                                     "api_key": "sk-ant-abcdefgh1234"})
     payload = client.get("/api/secrets").json()["anthropic"]
     assert payload["set"] is True
     assert payload["hint"] == "…1234"
     assert "sk-ant-abcdefgh1234" not in str(payload)
 
 
-def test_secrets_endpoint_rejects_a_non_key(client):
-    assert client.put("/api/secrets", json={"anthropic_api_key": "hunter2"}).status_code == 422
+def test_secrets_endpoint_rejects_a_key_shaped_wrong_for_its_provider(client):
+    response = client.put("/api/secrets", json={"provider": "anthropic", "api_key": "hunter2"})
+    assert response.status_code == 422
+    assert "sk-ant-" in response.json()["detail"]
 
 
 def test_secrets_can_be_cleared(client):
-    client.put("/api/secrets", json={"anthropic_api_key": ""})
+    client.put("/api/secrets", json={"provider": "anthropic", "clear": True})
     assert client.get("/api/secrets").json()["anthropic"]["source"] in {"none", "environment"}
+
+
+def test_switching_provider_updates_the_config(client):
+    result = client.put("/api/secrets", json={"provider": "openai", "api_key": "sk-abcdefghijklmn",
+                                              "model": "gpt-4o-mini"}).json()
+    assert result["provider"] == "openai" and result["model"] == "gpt-4o-mini"
+    current = client.get("/api/secrets").json()["current"]
+    assert current["provider"] == "openai" and current["label"] == "OpenAI"
+
+
+def test_provider_catalog_is_offered_to_the_ui(client):
+    payload = client.get("/api/providers").json()
+    ids = {p["id"] for p in payload["providers"]}
+    assert {"anthropic", "openai", "google", "groq", "openrouter", "ollama"} <= ids
+    ollama = next(p for p in payload["providers"] if p["id"] == "ollama")
+    assert ollama["needs_key"] is False
+
+
+def test_a_local_provider_needs_no_key(monkeypatch):
+    """Ollama runs on the machine, so the tool should consider itself usable without a key."""
+    monkeypatch.delenv("JOBWRAPPER_NO_LLM", raising=False)   # the suite's global kill switch
+    local = LLMClient(Config(llm={"provider": "ollama", "model": "llama3.1"}).llm)
+    assert local.provider.needs_key is False
+    assert local.available(), "a local provider needs no key to be usable"
 
 
 def test_autopilot_shortlist_skips_what_was_already_applied_to(store, profile):
@@ -238,3 +265,33 @@ def test_desktop_picks_a_free_port_and_a_landing_route():
     first, second = free_port(), free_port()
     assert 1024 < first < 65536 and 1024 < second < 65536
     assert landing_route() in {"#/profile", "#/autopilot"}
+
+
+def test_openai_compatible_adapter_parses_fenced_json():
+    """Models wrap JSON in prose or code fences more often than they should."""
+    from jobwrapper.llm.providers import _loads
+
+    assert _loads('```json\n{"a": 1}\n```') == {"a": 1}
+    assert _loads('Sure! {"a": 2} hope that helps') == {"a": 2}
+    assert _loads('{"a": 3}') == {"a": 3}
+
+
+def test_every_provider_has_a_usable_default():
+    from jobwrapper.llm.providers import PROVIDERS
+
+    for provider in PROVIDERS.values():
+        assert provider.default_model, provider.id
+        assert provider.default_model in provider.models, provider.id
+        assert provider.kind in {"anthropic", "openai"}
+        if provider.kind == "openai":
+            assert provider.base_url.startswith("http"), provider.id
+
+
+def test_client_routes_non_anthropic_providers_through_the_compatible_adapter(monkeypatch):
+    from jobwrapper.llm.providers import OpenAICompatibleClient
+
+    monkeypatch.delenv("JOBWRAPPER_NO_LLM", raising=False)
+    client = LLMClient(Config(llm={"provider": "groq", "model": "llama-3.3-70b-versatile"}).llm)
+    client._key = "gsk_testkey123456"
+    assert isinstance(client._ensure(), OpenAICompatibleClient)
+    assert client.provider.base_url == "https://api.groq.com/openai/v1"

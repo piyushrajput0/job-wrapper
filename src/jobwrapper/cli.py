@@ -435,77 +435,65 @@ def run(limit: int = typer.Option(5, help="How many jobs to work through"),
     store.close()
 
 
-@app.command("key")
-def set_key(key: str = typer.Option(..., prompt="Anthropic API key", hide_input=True),
-            clear: bool = typer.Option(False, "--clear")):
-    """Store your Claude API key (encrypted). The app then uses it for tailoring and answers."""
+@app.command("model")
+def set_model(
+    provider: str | None = typer.Option(None, help="anthropic | openai | google | groq | "
+                                                   "mistral | deepseek | xai | openrouter | "
+                                                   "together | ollama"),
+    model: str | None = typer.Option(None, help="Model id; omit for the provider default"),
+    key: str | None = typer.Option(None, help="API key (prompted if the provider needs one)"),
+    show: bool = typer.Option(False, "--show", help="List providers and what is configured"),
+    clear: bool = typer.Option(False, "--clear", help="Forget this provider's key"),
+):
+    """Choose which model to use, and store its key (encrypted)."""
     setup()
+    from .llm.providers import PROVIDERS, get_provider, list_models, looks_like_key
     from .vault import Vault
 
+    config = Config.load()
     vault = Vault(interactive=False)
+
+    if show or not provider:
+        table = Table("provider", "key", "models", "in use")
+        for pid, entry in PROVIDERS.items():
+            stored = bool(vault.get_api_key(pid))
+            table.add_row(
+                f"{entry.label} [dim]({pid})[/dim]",
+                "saved" if stored else ("not needed" if not entry.needs_key else "-"),
+                str(len(entry.models)) + "+",
+                "[green]yes[/green]" if pid == config.llm.provider else "")
+        console.print(table)
+        console.print(f"currently: [bold]{get_provider(config.llm.provider).label}[/bold] · "
+                      f"{config.llm.model}")
+        if not provider:
+            return
+
+    entry = get_provider(provider)
     if clear:
-        vault.clear_api_key("anthropic")
-        console.print("[green]key removed[/green]")
+        vault.clear_api_key(provider)
+        console.print(f"[green]removed the {entry.label} key[/green]")
         return
-    if not key.startswith("sk-"):
-        console.print("[red]that does not look like an Anthropic key (sk-...)[/red]")
-        raise typer.Exit(1)
-    vault.set_api_key("anthropic", key)
-    client = LLMClient()
-    console.print(f"[green]saved[/green] — the app will use it "
-                  f"({'verified available' if client.available() else 'not detected, check the key'})")
 
+    if entry.needs_key and not vault.get_api_key(provider) and key is None:
+        console.print(f"[dim]get a key at {entry.key_url}[/dim]")
+        key = typer.prompt(f"{entry.label} API key", hide_input=True)
+    if key:
+        if not looks_like_key(provider, key):
+            console.print(f"[red]that does not look like a {entry.label} key[/red]")
+            raise typer.Exit(1)
+        vault.set_api_key(provider, key)
 
-@app.command()
-def review(app_id: str | None = typer.Argument(None, help="Application id; omit for the oldest"),
-           all_pending: bool = typer.Option(False, "--all", help="Work through every one")):
-    """Re-open a filled application in a browser, put the values back, and hand it to you.
+    if not model:
+        available = list_models(provider, vault.get_api_key(provider))
+        model = entry.default_model
+        console.print(f"[dim]{len(available)} model(s) available; using {model}. "
+                      f"Pass --model to choose another.[/dim]")
 
-    `review` mode fills the form and then the run ends, closing the browser. This replays the
-    stored plan so you can check it and press submit yourself.
-    """
-    setup()
-    from .apply import ApplicationRunner, BrowserSession
-
-    config, store, profile_data, master = ctx()
-    config.apply.headless = False                       # you are the one looking at it
-
-    if app_id:
-        pending = [a for a in [store.applications.get(app_id)] if a]
-    else:
-        pending = [a for a in store.applications.list(limit=50)
-                   if a.status in {"ready_for_review", "needs_input"} and a.plan]
-        pending = pending if all_pending else pending[:1]
-    if not pending:
-        console.print("[yellow]nothing waiting for review[/yellow]")
-        raise typer.Exit(0)
-
-    runner = ApplicationRunner(config, store, profile_data, master)
-    with BrowserSession(config.apply) as session:
-        for application in pending:
-            console.print(Panel.fit(
-                f"[bold]{application.title}[/bold] at {application.company}\n"
-                f"{application.url}\n"
-                f"{len(application.plan.fields)} field(s) to put back"
-                + (f"\n[yellow]{application.notes}[/yellow]" if application.notes else ""),
-                title="review"))
-            filled, failed = runner.replay(application, session)
-            console.print(f"  refilled [green]{filled}[/green] field(s)"
-                          + (f", [yellow]{failed}[/yellow] could not be set" if failed else ""))
-            if application.resume_path:
-                console.print(f"  resume: {application.resume_path}")
-            console.print("[dim]Check the page, attach anything it still needs, and submit.[/dim]")
-            if typer.confirm("Did you submit it?", default=False):
-                from datetime import UTC, datetime
-
-                application.status = "submitted"
-                application.submitted_at = datetime.now(UTC).isoformat()
-                store.jobs.set_status(application.job_id, "submitted")
-                console.print("[green]recorded as submitted[/green]")
-            else:
-                console.print("[dim]left as it was[/dim]")
-            store.applications.save(application)
-    store.close()
+    config.llm.provider, config.llm.model = provider, model
+    config.save()
+    client = LLMClient(config.llm)
+    console.print(f"[green]using {entry.label} · {model}[/green]"
+                  f"{'' if client.available() else ' [yellow](no key detected yet)[/yellow]'}")
 
 
 @app.command()

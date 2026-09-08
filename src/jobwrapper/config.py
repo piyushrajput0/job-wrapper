@@ -86,8 +86,9 @@ class ApplyConfig(BaseModel):
 
 class LLMConfig(BaseModel):
     enabled: bool = True
-    model: str = "claude-opus-5"
-    cheap_model: str = "claude-opus-5"
+    provider: str = "anthropic"          # see llm/providers.py for the full list
+    model: str = "claude-sonnet-5"
+    cheap_model: str = ""                # falls back to `model` when empty
     effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
     max_tokens: int = 8000
     cache_prompts: bool = True

@@ -7,6 +7,7 @@ page could otherwise talk to them.
 
 from __future__ import annotations
 
+import os
 import secrets
 from datetime import UTC
 from pathlib import Path
@@ -206,77 +207,111 @@ def create_app() -> FastAPI:
         return {"ats": found.ats, "token": found.token, "company": found.company,
                 "id": source_id, "saved": bool(payload.get("save"))}
 
-    # ------------------------------------------------------------------ secrets
-    @app.get("/api/secrets")
-    def read_secrets(s: AppState = Depends(get_state)) -> dict[str, Any]:
-        """Never returns the key itself - only whether one is set, and its last four."""
-        import os
-
+    # ------------------------------------------------------------------ model provider
+    @app.get("/api/providers")
+    def providers(s: AppState = Depends(get_state)) -> dict[str, Any]:
+        from ..llm.providers import catalog
         from ..vault import Vault
 
-        env_key = bool(os.environ.get("ANTHROPIC_API_KEY"))
-        stored = ""
         try:
-            stored = Vault(interactive=False).get_api_key("anthropic")
+            stored = set(Vault(interactive=False).domains())
+        except Exception:
+            stored = set()
+        entries = catalog()
+        for entry in entries:
+            entry["has_key"] = f"apikey:{entry['id']}" in stored
+        return {"providers": entries, "current": {"provider": s.config.llm.provider,
+                                                  "model": s.config.llm.model,
+                                                  "enabled": s.config.llm.enabled}}
+
+    @app.get("/api/providers/{provider_id}/models")
+    def provider_models(provider_id: str, s: AppState = Depends(get_state)) -> dict[str, Any]:
+        """Ask the provider what it can run right now - a baked-in list goes stale."""
+        from ..llm.providers import get_provider, list_models
+        from ..vault import Vault
+
+        provider = get_provider(provider_id)
+        key = ""
+        try:
+            key = Vault(interactive=False).get_api_key(provider_id)
+        except Exception:
+            pass
+        if not key:
+            key = os.environ.get(LLMClient.ENV_KEYS.get(provider_id, ""), "")
+        models = list_models(provider_id, key)
+        return {"provider": provider_id, "models": models,
+                "default": provider.default_model, "live": bool(key or not provider.needs_key)}
+
+    @app.get("/api/secrets")
+    def read_secrets(s: AppState = Depends(get_state)) -> dict[str, Any]:
+        """Never returns a key - only whether one is set, and its last four characters."""
+        from ..llm.providers import PROVIDERS
+        from ..vault import Vault
+
+        try:
+            vault = Vault(interactive=False)
+            keys = {pid: vault.get_api_key(pid) for pid in PROVIDERS}
         except Exception as exc:
             log.debug("vault read failed: %s", exc)
-        return {
-            "anthropic": {
-                "set": bool(stored) or env_key,
-                "source": "environment" if env_key else ("saved" if stored else "none"),
-                "hint": f"…{stored[-4:]}" if stored else "",
-                "usable": s.llm.available(),
-            }
-        }
+            keys = {}
+        out: dict[str, Any] = {}
+        for pid, provider in PROVIDERS.items():
+            stored = keys.get(pid, "")
+            env_key = bool(os.environ.get(LLMClient.ENV_KEYS.get(pid, ""), ""))
+            out[pid] = {"set": bool(stored) or env_key or not provider.needs_key,
+                        "source": "environment" if env_key else ("saved" if stored else "none"),
+                        "hint": f"\u2026{stored[-4:]}" if stored else ""}
+        out["current"] = {"provider": s.config.llm.provider, "model": s.config.llm.model,
+                          "usable": s.llm.available(), "label": s.llm.provider.label}
+        return out
 
     @app.put("/api/secrets")
     def write_secrets(payload: dict[str, Any] = Body(...),
                       s: AppState = Depends(get_state)) -> dict[str, Any]:
+        """Store a key for a provider, and optionally switch to it."""
+        from ..llm.providers import get_provider, looks_like_key
         from ..vault import Vault
 
-        key = (payload.get("anthropic_api_key") or "").strip()
+        provider_id = payload.get("provider") or s.config.llm.provider
+        provider = get_provider(provider_id)
+        key = (payload.get("api_key") or "").strip()
         vault = Vault(interactive=False)
-        if not key:
-            vault.clear_api_key("anthropic")
-            s.llm.forget_key()
-            return {"ok": True, "cleared": True}
-        if not key.startswith("sk-"):
-            raise HTTPException(status_code=422,
-                                detail="that does not look like an Anthropic API key (sk-…)")
-        vault.set_api_key("anthropic", key)
-        s.llm.forget_key()
-        return {"ok": True, "usable": s.llm.available()}
+
+        if payload.get("clear"):
+            vault.clear_api_key(provider_id)
+        elif key:
+            if not looks_like_key(provider_id, key):
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"that does not look like a {provider.label} key"
+                           + (f" (expected it to start with {provider.key_prefix})"
+                              if provider.key_prefix else ""))
+            vault.set_api_key(provider_id, key)
+
+        if payload.get("select", True):
+            s.config.llm.provider = provider_id
+            s.config.llm.model = (payload.get("model") or "").strip() or provider.default_model
+            if "enabled" in payload:
+                s.config.llm.enabled = bool(payload["enabled"])
+            s.config.save()
+            s._stamp()
+        s.llm = LLMClient(s.config.llm)
+        return {"ok": True, "provider": s.config.llm.provider, "model": s.config.llm.model,
+                "usable": s.llm.available()}
 
     @app.post("/api/secrets/test")
     def test_secret(s: AppState = Depends(get_state)) -> dict[str, Any]:
-        """One tiny call, so the user can confirm the key works before a real run."""
-        s.llm.forget_key()
+        """One tiny call, so the user can confirm the setup before a real run."""
+        s.llm = LLMClient(s.config.llm)
         if not s.llm.available():
-            return {"ok": False, "error": "no key found"}
+            return {"ok": False, "error": f"no key for {s.llm.provider.label}"}
         try:
-            reply = s.llm.text(system="Reply with the single word: ready.",
-                               prompt="ping", effort="low", max_tokens=16)
-            return {"ok": True, "model": s.config.llm.model, "reply": reply[:40],
-                    "cost_usd": round(s.llm.cost_so_far(), 5)}
+            reply = s.llm.text(system="Reply with the single word: ready.", prompt="ping",
+                               effort="low", max_tokens=16)
+            return {"ok": True, "provider": s.llm.provider.label, "model": s.config.llm.model,
+                    "reply": reply[:60]}
         except Exception as exc:
             return {"ok": False, "error": str(exc)[:300]}
-
-    @app.post("/api/setup/browser")
-    def install_browser() -> dict[str, Any]:
-        """Download the browser from inside the app - a packaged user has no terminal."""
-        from ..apply.browser import install_chromium
-
-        if registry.running("browser-setup"):
-            raise HTTPException(status_code=409, detail="already downloading")
-
-        def run(task: Any) -> dict[str, Any]:
-            task.emit({"stage": "setup", "message": "downloading the browser (about 150 MB)…"})
-            ok, output = install_chromium()
-            task.emit({"stage": "setup",
-                       "message": "browser ready" if ok else f"failed: {output[-160:]}"})
-            return {"ok": ok, "output": output}
-
-        return registry.start("browser-setup", run).as_dict()
 
     # ------------------------------------------------------------------ autopilot
     @app.post("/api/autopilot")

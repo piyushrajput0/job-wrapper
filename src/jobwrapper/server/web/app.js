@@ -333,176 +333,6 @@
     if (!apTimer) apTimer = setInterval(pollRun, 2000);
   }
 
-  async function wireSecrets() {
-    const key = el("api-key");
-    if (!key) return;
-    const status = (message, kind) => {
-      el("key-status").innerHTML = `<span class="pill ${kind}">${message}</span>`;
-    };
-    el("btn-save-key").onclick = async () => {
-      if (!key.value.trim()) return toast("Paste a key first", "bad");
-      try {
-        const result = await api.put("/api/secrets", { anthropic_api_key: key.value.trim() });
-        key.value = "";
-        status(result.usable ? "key saved and in use" : "key saved", "good");
-        toast("API key saved (encrypted)", "good");
-      } catch (error) { toast(Form.esc(error.message), "bad"); }
-    };
-    el("btn-test-key").onclick = async (event) => {
-      event.target.innerHTML = '<span class="spin"></span>';
-      const result = await api.post("/api/secrets/test", {});
-      event.target.textContent = "Test";
-      if (result.ok) { status(`working — ${Form.esc(result.model)}`, "good"); toast("Key works", "good"); }
-      else { status("not working", "bad"); toast(Form.esc(result.error || "failed"), "bad"); }
-    };
-    el("btn-clear-key").onclick = async () => {
-      await api.put("/api/secrets", { anthropic_api_key: "" });
-      status("no key — deterministic fallbacks", "warn");
-      toast("Key removed", "good");
-    };
-  }
-
-  function wireJobs(params) {
-    const refresh = () => {
-      const query = new URLSearchParams();
-      const q = el("job-q").value.trim(); if (q) query.set("q", q);
-      const min = el("job-min").value; if (min !== "0") query.set("min", min);
-      const status = el("job-status").value; if (status) query.set("status", status);
-      location.hash = `#/jobs${query.toString() ? `?${query}` : ""}`;
-    };
-    el("job-q").onchange = refresh;
-    el("job-min").onchange = refresh;
-    el("job-status").onchange = refresh;
-
-    el("btn-search").onclick = async (event) => {
-      event.target.disabled = true;
-      event.target.innerHTML = '<span class="spin"></span> Searching';
-      const task = await api.post("/api/search", {});
-      toast("Search started across your enabled sources");
-      await pollTask(task.id, "Search");
-      render();
-    };
-
-    const picks = () => [...document.querySelectorAll(".pick:checked")].map((c) => c.dataset.id);
-    const applyButton = el("btn-apply-selected");
-    document.querySelectorAll(".pick").forEach((box) => {
-      box.onclick = (event) => {
-        event.stopPropagation();
-        const n = picks().length;
-        applyButton.disabled = !n;
-        applyButton.textContent = n ? `Apply to ${n} selected` : "Apply to selected";
-      };
-    });
-    applyButton.onclick = async () => {
-      const ids = picks();
-      if (!ids.length) return;
-      if (!confirm(`Run the application flow for ${ids.length} job(s)?\n\nA browser window will open. At autonomy "review" nothing is submitted without you.`)) return;
-      const task = await api.post("/api/apply", { job_ids: ids });
-      toast("Application run started - watch the browser window");
-      await pollTask(task.id, "Apply run");
-      render();
-    };
-
-    document.querySelectorAll("tr.clickable").forEach((row) => {
-      row.onclick = (event) => {
-        if (event.target.closest("a,input,button")) return;
-        const detail = document.querySelector(`[data-detail="${row.dataset.id}"]`);
-        if (detail) detail.hidden = !detail.hidden;
-      };
-    });
-    document.querySelectorAll("[data-apply]").forEach((button) => {
-      button.onclick = async () => {
-        const task = await api.post("/api/apply", { job_ids: [button.dataset.apply] });
-        toast("Applying - a browser window will open");
-        await pollTask(task.id, "Apply");
-        render();
-      };
-    });
-    document.querySelectorAll("[data-tailor]").forEach((button) => {
-      button.onclick = async () => {
-        button.innerHTML = '<span class="spin"></span> Tailoring';
-        try {
-          const result = await api.post("/api/resume/tailor", { job_id: button.dataset.tailor });
-          const violations = result.violations.length
-            ? `<br><b>${result.violations.length} truthfulness flag(s)</b>` : "";
-          toast(`ATS score ${result.ats_score}/100 · keyword coverage ${Math.round(result.coverage * 100)}%${violations}`, "good");
-        } catch (error) { toast(Form.esc(error.message), "bad"); }
-        button.textContent = "Preview tailored resume";
-      };
-    });
-    document.querySelectorAll("[data-hide]").forEach((button) => {
-      button.onclick = async () => {
-        await api.post(`/api/jobs/${button.dataset.hide}/status`, { status: "skipped" });
-        render();
-      };
-    });
-  }
-
-  function wireApplications() {
-    document.querySelectorAll("[data-review]").forEach((button) => {
-      button.onclick = async () => {
-        const id = button.dataset.review;
-        button.innerHTML = '<span class="spin"></span> Opening';
-        try {
-          await api.post(`/api/applications/${id}/review`, {});
-          toast("Browser opening — the form is being refilled for you", "good");
-          button.outerHTML = `
-            <button class="btn sm primary" data-submitted="${id}">I submitted it</button>
-            <button class="btn sm" data-close="${id}">Close browser</button>`;
-          document.querySelector(`[data-submitted="${id}"]`).onclick = async () => {
-            await api.post(`/api/applications/${id}/review/close`, { submitted: true });
-            toast("Recorded as submitted", "good");
-            render();
-          };
-          document.querySelector(`[data-close="${id}"]`).onclick = async () => {
-            await api.post(`/api/applications/${id}/review/close`, { submitted: false });
-            render();
-          };
-        } catch (error) {
-          toast(Form.esc(error.message), "bad");
-          button.textContent = "Open & refill";
-        }
-      };
-    });
-  }
-
-  function wireAnswers() {
-    const filter = el("ans-q");
-    if (filter) filter.oninput = () => {
-      const needle = filter.value.toLowerCase();
-      document.querySelectorAll("#ans-table tbody tr").forEach((row) => {
-        row.hidden = !row.dataset.q.toLowerCase().includes(needle);
-      });
-    };
-    document.querySelectorAll("[data-answer]").forEach((input) => {
-      input.onchange = async () => {
-        await api.post("/api/answers", { question: input.dataset.answer, answer: input.value,
-          company: input.dataset.company || "" });
-        toast("Answer updated", "good");
-      };
-    });
-    document.querySelectorAll("[data-del]").forEach((button) => {
-      button.onclick = async () => {
-        await api.del(`/api/answers?question=${encodeURIComponent(button.dataset.del)}&company=${
-          encodeURIComponent(button.dataset.company || "")}`);
-        render();
-      };
-    });
-  }
-
-  function wireResume() {
-    el("btn-import").onclick = async (event) => {
-      const path = el("import-path").value.trim();
-      if (!path) return toast("Give the path to your resume file", "bad");
-      event.target.innerHTML = '<span class="spin"></span> Importing';
-      try {
-        const result = await api.post("/api/resume/import", { path, use_llm: el("import-llm").checked });
-        toast(`Imported ${result.roles} role(s), ${result.education} education entr(ies), ${result.skill_groups} skill group(s)`, "good");
-        render();
-      } catch (error) { toast(Form.esc(error.message), "bad"); event.target.textContent = "Import"; }
-    };
-  }
-
   async function wireSettings() {
     const config = await api.get("/api/config");
     const split = (id) => el(id).value.split(",").map((s) => s.trim()).filter(Boolean);
@@ -526,8 +356,9 @@
         truthfulness: el("r-truth").value, max_pages: Number(el("r-pages").value),
         engine: el("r-engine").value, overleaf_git_url: el("r-overleaf").value || null,
       });
+      // provider and model belong to the AI model card, which saves itself
       Object.assign(config.llm, {
-        enabled: el("l-enabled").checked, model: el("l-model").value, effort: el("l-effort").value,
+        enabled: el("l-enabled").checked, effort: el("l-effort").value,
       });
       document.querySelectorAll("[data-src]").forEach((box) => {
         config.sources[Number(box.dataset.src)].enabled = box.checked;
@@ -548,6 +379,90 @@
     el("btn-copy-token").onclick = () => {
       navigator.clipboard.writeText(document.querySelector(".mono[readonly]").value);
       toast("Token copied", "good");
+    };
+  }
+
+  async function wireSecrets() {
+    const providerSelect = el("ai-provider");
+    if (!providerSelect) return;
+    const catalogue = await api.get("/api/providers");
+    const byId = Object.fromEntries(catalogue.providers.map((p) => [p.id, p]));
+    const status = (message, kind) => {
+      el("ai-status").innerHTML = `<span class="pill ${kind}">${message}</span>`;
+    };
+
+    async function loadModels(providerId, selected) {
+      const select = el("ai-model");
+      select.innerHTML = "<option>loading…</option>";
+      let models = byId[providerId]?.models || [];
+      try {
+        const live = await api.get(`/api/providers/${providerId}/models`);
+        if (live.models?.length) models = live.models;
+      } catch { /* fall back to the bundled list */ }
+      const want = selected || byId[providerId]?.default_model;
+      select.innerHTML = models.map((m) =>
+        `<option value="${Form.esc(m)}"${m === want ? " selected" : ""}>${Form.esc(m)}</option>`).join("");
+      if (want && !models.includes(want)) {
+        select.insertAdjacentHTML("afterbegin",
+          `<option value="${Form.esc(want)}" selected>${Form.esc(want)} (current)</option>`);
+      }
+    }
+
+    function paintProvider(providerId) {
+      const provider = byId[providerId] || {};
+      el("ai-key-field").style.display = provider.needs_key ? "" : "none";
+      el("ai-provider-note").textContent = provider.notes || "";
+      el("ai-key-help").innerHTML = provider.needs_key
+        ? `Get one at <a href="${Form.esc(provider.key_url)}" target="_blank" rel="noopener">${
+            Form.esc((provider.key_url || "").replace(/^https?:\/\//, ""))}</a>`
+        : "";
+    }
+
+    paintProvider(providerSelect.value);
+    await loadModels(providerSelect.value, catalogue.current.model);
+
+    providerSelect.onchange = async () => {
+      paintProvider(providerSelect.value);
+      await loadModels(providerSelect.value, null);
+    };
+    el("ai-refresh").onclick = async (event) => {
+      event.target.textContent = "…";
+      await loadModels(providerSelect.value, el("ai-model").value);
+      event.target.textContent = "↻";
+    };
+
+    el("ai-save").onclick = async () => {
+      const body = {
+        provider: providerSelect.value,
+        model: el("ai-model-custom").value.trim() || el("ai-model").value,
+        api_key: el("ai-key").value.trim(),
+      };
+      try {
+        const result = await api.put("/api/secrets", body);
+        el("ai-key").value = "";
+        status(result.usable ? `ready · ${result.model}` : "saved, but no key yet",
+               result.usable ? "good" : "warn");
+        toast(`Using ${byId[result.provider]?.label || result.provider} · ${result.model}`, "good");
+      } catch (error) { toast(Form.esc(error.message), "bad"); }
+    };
+
+    el("ai-test").onclick = async (event) => {
+      event.target.innerHTML = '<span class="spin"></span>';
+      const result = await api.post("/api/secrets/test", {});
+      event.target.textContent = "Test it";
+      if (result.ok) {
+        status(`working · ${Form.esc(result.model)}`, "good");
+        toast(`${Form.esc(result.provider)} replied: ${Form.esc(result.reply)}`, "good");
+      } else {
+        status("not working", "bad");
+        toast(Form.esc(result.error || "failed"), "bad");
+      }
+    };
+
+    el("ai-clear").onclick = async () => {
+      await api.put("/api/secrets", { provider: providerSelect.value, clear: true });
+      status("key removed", "warn");
+      toast("Key removed", "good");
     };
   }
 
