@@ -20,7 +20,7 @@ from ..llm import LLMClient
 from ..logging_setup import get
 from ..models import Application, Job, Profile
 from ..models.resume import MasterResume, TailoredResume
-from ..resume.compile import compile_resume
+from ..resume.compile import compile_html, compile_resume
 from ..resume.render import render_html, render_latex
 from ..resume.tailor import Tailor
 from ..store import Store
@@ -47,6 +47,34 @@ class RunReport:
         return {"attempted": self.attempted, "submitted": self.submitted,
                 "ready_for_review": self.ready_for_review, "needs_input": self.needs_input,
                 "failed": self.failed, "skipped": self.skipped}
+
+
+def artifact_basename(profile: Profile, job: Job, stamp: str) -> str:
+    """The filename is the first thing a recruiter sees in their downloads folder, so it leads
+    with the candidate's name rather than with the company's."""
+    who = _slug(profile.identity.display_name or profile.identity.full_name, 28)
+    return f"{who}-{_slug(job.title, 30)}-{_slug(job.company, 20)}-{stamp}".strip("-")
+
+
+def _cover_letter_html(text: str, profile: Profile, job: Job) -> str:
+    """A plain, parser-friendly letter. Same typography as the résumé so they look like a pair."""
+    from html import escape
+
+    paragraphs = "".join(f"<p>{escape(p.strip())}</p>"
+                         for p in text.split("\n\n") if p.strip())
+    contact = " &middot; ".join(escape(x) for x in [
+        profile.contact.email, profile.contact.phone, profile.address.city_state_country] if x)
+    return f"""<!doctype html><meta charset="utf-8"><title>Cover letter</title>
+<style>@page {{ size: letter; margin: 22mm 20mm; }}
+body {{ font-family: Charter, Georgia, "Times New Roman", serif; font-size: 11pt;
+        line-height: 1.5; color: #16181d; }}
+h1 {{ font-size: 15pt; margin: 0 0 2px; }} .c {{ color: #444; font-size: 9.5pt; margin-bottom: 18px; }}
+p {{ margin: 0 0 11px; }} .to {{ margin-bottom: 16px; }}</style>
+<h1>{escape(profile.identity.display_name)}</h1>
+<div class="c">{contact}</div>
+<div class="to">{escape(job.company)}<br>Re: {escape(job.title)}</div>
+{paragraphs}
+<p>Sincerely,<br>{escape(profile.identity.display_name)}</p>"""
 
 
 def _slug(text: str, limit: int = 40) -> str:
@@ -101,7 +129,7 @@ class ApplicationRunner:
         """A fresh resume per application, as specified."""
         tailored = self.tailor.tailor(job)
         stamp = datetime.now(UTC).strftime("%Y%m%d")
-        base = f"{_slug(job.company, 28)}-{_slug(job.title, 34)}-{stamp}"
+        base = artifact_basename(self.profile, job, stamp)
         directory = paths.ensure_layout()["resumes"]
         pdf_path = directory / f"{base}.pdf"
         tex_path = directory / f"{base}.tex"
@@ -132,8 +160,11 @@ class ApplicationRunner:
         if self.config.apply.generate_cover_letter:
             cover_text = self.answers.cover_letter(job)
             cover_dir = paths.ensure_layout()["cover_letters"]
-            cover_letter_path = str(cover_dir / f"{base}.txt")
-            Path(cover_letter_path).write_text(cover_text, encoding="utf-8")
+            Path(cover_dir / f"{base}-cover.txt").write_text(cover_text, encoding="utf-8")
+            # upload fields want a document, not a .txt - render the same text to PDF
+            cover_pdf = cover_dir / f"{base}-cover.pdf"
+            rendered = compile_html(_cover_letter_html(cover_text, self.profile, job), cover_pdf)
+            cover_letter_path = str(cover_pdf if rendered.ok else cover_dir / f"{base}-cover.txt")
 
         if not result.ok:
             log.error("resume compilation failed for %s: %s", job.short(), result.error)

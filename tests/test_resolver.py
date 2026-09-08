@@ -140,3 +140,22 @@ def test_placeholder_options_never_win(resolver):
         name="q", label="Highest level of education completed", input_type="select",
         options=["", "Bachelor's Degree", "Master's Degree"]))
     assert result.value == "Bachelor's Degree"
+
+
+@pytest.mark.parametrize("placeholder,expected", [
+    ("MM/DD/YYYY", "05/01/2019"),
+    ("DD/MM/YYYY", "01/05/2019"),
+    ("MM/YYYY", "05/2019"),
+    ("YYYY", "2019"),
+    ("", "2019-05"),
+])
+def test_dates_follow_the_format_the_page_asks_for(resolver, placeholder, expected):
+    """A text box labelled MM/DD/YYYY should not be handed an ISO date."""
+    result = resolver.resolve_field(FD(name="q", label="Graduation date",
+                                       placeholder=placeholder, input_type="text"))
+    assert result.value == expected
+
+
+def test_native_date_inputs_still_get_iso(resolver):
+    result = resolver.resolve_field(FD(name="q", label="Graduation date", input_type="date"))
+    assert result.value == "2019-05"

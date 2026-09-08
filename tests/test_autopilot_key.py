@@ -200,3 +200,27 @@ def test_review_of_an_application_with_no_plan_is_a_no_op(store, profile):
     runner = ApplicationRunner(Config(), store, profile, MasterResume())
     empty = Application(job_id="j2", company="Acme", title="Engineer", status="planned")
     assert runner.replay(empty, object()) == (0, 0)
+
+
+def test_artifact_filenames_lead_with_the_candidate(profile):
+    """Recruiters see the filename; "Alex-Rivera-..." beats "VectorLabs-...".""" 
+    from jobwrapper.apply.runner import artifact_basename
+    from jobwrapper.models import Job
+
+    base = artifact_basename(profile, Job(company="Vector Labs, Inc.",
+                                          title="Senior Backend Engineer (Platform)"), "20260101")
+    assert base.startswith("Alex-Rivera-")
+    assert "Senior-Backend-Engineer" in base and "Vector-Labs" in base
+    assert " " not in base and "," not in base
+
+
+def test_cover_letter_renders_as_a_document(profile):
+    """ATS upload fields reject .txt, so the letter has to be a real document."""
+    from jobwrapper.apply.runner import _cover_letter_html
+    from jobwrapper.models import Job
+
+    html = _cover_letter_html("First paragraph.\n\nSecond paragraph.", profile,
+                              Job(company="Vector Labs", title="Senior Backend Engineer"))
+    assert "<p>First paragraph.</p>" in html and "<p>Second paragraph.</p>" in html
+    assert "Alex Rivera" in html and "Vector Labs" in html
+    assert "alex.rivera@example.com" in html

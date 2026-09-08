@@ -389,10 +389,33 @@ class FieldResolver:
             return Resolution(field_key=key, confidence=score, reason=f"{reason}; no value in profile")
         return Resolution(confidence=score, reason="no catalog match")
 
+    @staticmethod
+    def _match_date_format(value: str, descriptor: FieldDescriptor) -> str:
+        """A text box asking for MM/DD/YYYY should not be handed 2019-05-01."""
+        match = re.fullmatch(r"(\d{4})-(\d{2})(?:-(\d{2}))?", value.strip())
+        if not match:
+            return value
+        year, month, day = match.group(1), match.group(2), match.group(3) or "01"
+        hint = " ".join([descriptor.placeholder, descriptor.label, descriptor.aria_label,
+                         descriptor.name]).lower()
+        if descriptor.input_type in {"date", "month"}:
+            return value                      # native pickers want ISO
+        if "dd/mm" in hint or "dd-mm" in hint:
+            return f"{day}/{month}/{year}"
+        if "mm/dd" in hint or "mm-dd" in hint:
+            return f"{month}/{day}/{year}"
+        if "mm/yyyy" in hint or "mm/yy" in hint:
+            return f"{month}/{year}"
+        if "yyyy" in hint and "mm" not in hint:
+            return year
+        return value
+
     def _value_for_descriptor(self, key: str, descriptor: FieldDescriptor) -> str | None:
         value = self.values.value_for(key)
         if not value:
             return None
+        if self.catalog.by_key.get(key, {}).get("type") in {"date", "month"}:
+            value = self._match_date_format(value, descriptor)
         spec = self.catalog.by_key.get(key, {})
         if descriptor.options and spec.get("type") in {"select", "radio", "checkbox"} or \
                 (descriptor.options and descriptor.input_type in {"select", "radio", "checkbox"}):
