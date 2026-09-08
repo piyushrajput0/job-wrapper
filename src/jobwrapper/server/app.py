@@ -368,8 +368,10 @@ def create_app() -> FastAPI:
 
     # ------------------------------------------------------------------ jobs
     @app.get("/api/jobs")
-    def list_jobs(status: str | None = None, min_score: int = 0, limit: int = 200,
-                  q: str | None = None, s: AppState = Depends(get_state)) -> list[dict[str, Any]]:
+    def list_jobs(status: str | None = None, min_score: int = 0,
+                  limit: int = Query(200, ge=1, le=5000),
+                  q: str | None = Query(None, max_length=500),
+                  s: AppState = Depends(get_state)) -> list[dict[str, Any]]:
         jobs = s.store.jobs.list(status=status, min_score=min_score, limit=limit, search=q)
         return [j.model_dump(mode="json") for j in jobs]
 
@@ -401,7 +403,8 @@ def create_app() -> FastAPI:
 
     # ------------------------------------------------------------------ applications
     @app.get("/api/applications")
-    def list_applications(status: str | None = None, limit: int = 100,
+    def list_applications(status: str | None = None,
+                          limit: int = Query(100, ge=1, le=5000),
                           s: AppState = Depends(get_state)) -> list[dict[str, Any]]:
         return [a.model_dump(mode="json") for a in s.store.applications.list(status=status, limit=limit)]
 
@@ -592,8 +595,12 @@ def create_app() -> FastAPI:
                 "plan": tailored.plan.model_dump(mode="json")}
 
     @app.get("/api/artifact")
-    def artifact(path: str = Query(...), s: AppState = Depends(get_state)) -> FileResponse:
-        resolved = Path(path).expanduser().resolve()
+    def artifact(path: str = Query(..., max_length=4096),
+                 s: AppState = Depends(get_state)) -> FileResponse:
+        try:
+            resolved = Path(path).expanduser().resolve()
+        except (ValueError, OSError) as exc:      # e.g. an embedded null byte
+            raise HTTPException(status_code=400, detail="invalid path") from exc
         root = s.layout["root"].resolve()
         if root not in resolved.parents:
             raise HTTPException(status_code=403, detail="outside the artifact directory")

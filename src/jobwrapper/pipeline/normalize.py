@@ -60,6 +60,15 @@ _SINGLE_SALARY_RE = re.compile(
 _CUR_MAP = {"$": "USD", "£": "GBP", "€": "EUR", "₹": "INR", "USD": "USD", "GBP": "GBP",
             "EUR": "EUR", "INR": "INR", "CAD": "CAD"}
 
+# "12-18 LPA", "₹12,00,000", "1.2 crore" - Indian postings quote pay in lakhs per annum, and
+# group digits 2-2-3 rather than 3-3-3. Read as plain numbers these are wrong by 100x.
+_LPA_RE = re.compile(
+    r"(?:₹|INR|Rs\.?)?\s*(\d{1,3}(?:\.\d+)?)\s*(?:-|–|—|to)\s*(\d{1,3}(?:\.\d+)?)\s*"
+    r"(lpa|lakhs?\s*(?:per\s*annum|p\.?a\.?)?|cr|crores?)", re.I)
+_INDIAN_GROUPED_RE = re.compile(
+    r"(?:₹|INR|Rs\.?)\s*(\d{1,2}(?:,\d{2})+,\d{3})\s*(?:-|–|—|to)\s*"
+    r"(?:₹|INR|Rs\.?)?\s*(\d{1,2}(?:,\d{2})+,\d{3})")
+
 
 def _to_int(token: str) -> int | None:
     token = token.strip().replace(",", "")
@@ -83,6 +92,20 @@ def parse_salary(text: str, *, default_currency: str = "USD") -> SalaryRange:
         period = "hourly"
     elif re.search(r"\bper month\b|/\s?month|\bmonthly\b|\bpm\b", lowered):
         period = "monthly"
+
+    indian = _LPA_RE.search(window)
+    if indian:
+        unit = indian.group(3).lower()
+        multiplier = 10_000_000 if unit.startswith(("cr",)) else 100_000
+        low = int(float(indian.group(1)) * multiplier)
+        high = int(float(indian.group(2)) * multiplier)
+        return SalaryRange(min=low, max=high, currency="INR", period=period)
+
+    grouped = _INDIAN_GROUPED_RE.search(window)
+    if grouped:
+        low = int(grouped.group(1).replace(",", ""))
+        high = int(grouped.group(2).replace(",", ""))
+        return SalaryRange(min=low, max=high, currency="INR", period=period)
 
     match = _SALARY_RE.search(window)
     if match:
@@ -164,9 +187,16 @@ def iso_date(value: object) -> str:
             return ""
     text = str(value).strip()
     if text.isdigit():
-        return iso_date(int(text))
+        # "2025" is a year; only a long run of digits is an epoch. Reading a year as epoch
+        # seconds dated postings to 1970 and made every one of them look 55 years stale.
+        if len(text) == 4 and 1900 <= int(text) <= 2100:
+            return iso_date(f"{text}-01-01")
+        if len(text) >= 9:
+            return iso_date(int(text))
+        return ""
     for fmt in ("%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S.%fZ",
-                "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%b %d, %Y", "%d %b %Y"):
+                "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%b %d, %Y", "%d %b %Y",
+                "%B %Y", "%b %Y", "%Y-%m"):
         try:
             parsed = datetime.strptime(text.replace("Z", "+0000") if fmt.endswith("%z") else text, fmt)
             if parsed.tzinfo is None:

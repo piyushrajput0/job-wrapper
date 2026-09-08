@@ -117,8 +117,14 @@ class Config(BaseModel):
     def load(cls, path: Path | None = None) -> Config:
         path = path or paths.ensure_layout()["config"]
         if path.exists():
-            raw = yaml.safe_load(path.read_text()) or {}
-            cfg = cls.model_validate(raw)
+            try:
+                raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+                cfg = cls.model_validate(raw)
+            except Exception as exc:
+                paths.quarantine(path, type(exc).__name__)
+                cfg = cls()
+                cfg.sources = cfg.sources or default_sources()
+                cfg.save(path)
         else:
             cfg = cls()
             if not cfg.sources:
@@ -141,9 +147,8 @@ class Config(BaseModel):
 
     def save(self, path: Path | None = None) -> Path:
         path = path or paths.ensure_layout()["config"]
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(yaml.safe_dump(self.model_dump(mode="json"), sort_keys=False))
-        return path
+        return paths.atomic_write(path, yaml.safe_dump(self.model_dump(mode="json"),
+                                                       sort_keys=False))
 
 
 def default_sources() -> list[SourceConfig]:

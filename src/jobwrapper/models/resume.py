@@ -103,14 +103,22 @@ class MasterResume(BaseModel):
 
     @classmethod
     def load(cls, path: Path) -> MasterResume:
+        """Never fail to start because a file on disk is damaged."""
         if not path.exists():
             return cls()
-        return cls.model_validate(json.loads(path.read_text()))
+        try:
+            return cls.model_validate(json.loads(path.read_text(encoding="utf-8")))
+        except Exception as exc:
+            from .. import paths as _paths
+
+            _paths.quarantine(path, type(exc).__name__)
+            return cls()
 
     def save(self, path: Path) -> Path:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(self.model_dump(mode="json"), indent=2, ensure_ascii=False))
-        return path
+        from .. import paths as _paths
+
+        return _paths.atomic_write(
+            path, json.dumps(self.model_dump(mode="json"), indent=2, ensure_ascii=False))
 
 
 # ----------------------------------------------------------------- what the LLM is asked to return

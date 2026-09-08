@@ -261,7 +261,9 @@ class Tailor:
             for group, skills in self.master.skill_groups.items():
                 if group not in merged or not merged[group]:
                     merged[group] = skills
-            out.skill_groups = merged
+            # a group the master never had contributes no skills, and an empty heading on a
+            # resume is worse than no heading - drop it rather than render it
+            out.skill_groups = {name: skills for name, skills in merged.items() if skills}
         return out
 
     # ------------------------------------------------------------------ firewall
