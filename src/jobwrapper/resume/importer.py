@@ -35,6 +35,26 @@ PHONE_RE = re.compile(
     r"\d{2,5}(?:[\s.\-]?\d{2,5}){1,3}(?![\d/\-])")
 
 
+HEADER_LOCATION_RE = re.compile(
+    r"(?<![A-Za-z])([A-Z][A-Za-z.'-]+(?:[ -][A-Z][A-Za-z.'-]+){0,2},\s*"
+    r"(?:[A-Z]{2}\b|[A-Z][a-z]+(?: [A-Z][a-z]+)?))")
+
+
+def find_location(text: str) -> str:
+    """The "San Francisco, CA" in the contact line - a résumé rarely states more than that."""
+    for line in text.splitlines()[:8]:
+        # skip the whole line, not just the match: "University of California, Berkeley" contains
+        # a perfectly location-shaped substring
+        if re.search(r"universit|college|institute|school|inc\.|llc|ltd|gmbh", line, re.I):
+            continue
+        if "@" in line or "http" in line:
+            line = re.sub(r"\S+@\S+|https?://\S+", " ", line)
+        match = HEADER_LOCATION_RE.search(line)
+        if match:
+            return match.group(1).strip()
+    return ""
+
+
 def find_phone(text: str) -> str:
     """First candidate with a plausible number of digits (7-15, per E.164)."""
     for match in PHONE_RE.finditer(text):
@@ -137,6 +157,7 @@ def parse_latex(source: str) -> MasterResume:
         else:
             resume.links.setdefault("website", url)
     resume.phone = find_phone(strip_latex(body[:2000]))
+    resume.location = find_location(strip_latex(body[:1200]))
 
     # name: the first \Huge/\LARGE/\name{} chunk, else the first non-empty text line
     two_part = re.search(r"\\(?:name|author)\s*\{([^{}]{1,40})\}\s*\{([^{}]{0,40})\}", source)
@@ -544,6 +565,7 @@ def parse_plaintext(text: str) -> MasterResume:
     if email:
         resume.email = email.group(0)
     resume.phone = find_phone(text[:2000])
+    resume.location = find_location(text[:1200])
     lines = [line.rstrip() for line in text.splitlines()]
     resume.name = next((line.strip() for line in lines[:5] if line.strip()), "")
 

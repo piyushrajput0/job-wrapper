@@ -46,6 +46,8 @@ class ResumeProject(BaseModel):
     description: str = ""
     bullets: list[ResumeBullet] = Field(default_factory=list)
     technologies: list[str] = Field(default_factory=list)
+    start_date: str = ""      # the importer was already passing these; pydantic dropped them
+    end_date: str = ""
 
 
 class ResumeSection(BaseModel):

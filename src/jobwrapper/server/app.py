@@ -544,8 +544,38 @@ def create_app() -> FastAPI:
         master = import_master_resume(path, s.llm, use_llm=bool(payload.get("use_llm", True)))
         master.save(s.layout["master_resume"])
         s.master = master
+
+        filled = 0
+        if payload.get("fill_profile"):
+            from ..resume.to_profile import profile_from_resume
+
+            result = profile_from_resume(master, s.profile,
+                                         overwrite=bool(payload.get("overwrite")))
+            result.profile.save(s.layout["profile"])
+            s.profile = result.profile
+            s._stamp()
+            filled = len(result.changes)
         return {"ok": True, "roles": len(master.experience), "projects": len(master.projects),
-                "education": len(master.education), "skill_groups": len(master.skill_groups)}
+                "education": len(master.education), "skill_groups": len(master.skill_groups),
+                "profile_fields_filled": filled}
+
+    @app.post("/api/profile/from-resume")
+    def fill_profile_from_resume(payload: dict[str, Any] = Body(default={}),
+                                 s: AppState = Depends(get_state)) -> dict[str, Any]:
+        """Propose profile values taken from the imported résumé, or apply them."""
+        from ..resume.to_profile import profile_from_resume
+
+        if not (s.master.experience or s.master.email or s.master.name):
+            raise HTTPException(status_code=400,
+                                detail="import a résumé first, on the Résumé page")
+        result = profile_from_resume(s.master, s.profile,
+                                     overwrite=bool(payload.get("overwrite")))
+        if payload.get("apply"):
+            result.profile.save(s.layout["profile"])
+            s.profile = result.profile
+            s._stamp()
+        return {**result.as_dict(), "applied": bool(payload.get("apply")),
+                "missing_after": result.profile.missing_required()}
 
     @app.post("/api/resume/tailor")
     def tailor_resume(payload: dict[str, Any] = Body(...),

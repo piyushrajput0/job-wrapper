@@ -245,14 +245,29 @@ const Views = (() => {
         tailored PDF generated from it.</div>
       <div class="toolbar">
         <input type="text" id="import-path" style="flex:1;min-width:280px"
-          placeholder="/Users/you/Overleaf/resume.tex" value="${esc(status.resume.master_loaded ? "" : "")}">
+          placeholder="/Users/you/resume.tex   (.tex, .pdf, .json, .md or .txt)">
         <label class="switch"><input type="checkbox" id="import-llm" checked><span class="track"></span>
-          <span class="muted">use Claude to parse</span></label>
+          <span class="muted">use the model to parse</span></label>
+        <label class="switch"><input type="checkbox" id="import-fill" checked><span class="track"></span>
+          <span class="muted">fill my profile too</span></label>
         <button class="btn primary" id="btn-import">Import</button>
       </div>
       <div class="muted" style="font-size:12.5px">LaTeX engines detected: ${esc(status.resume.latex_engines.join(", "))}</div>
     </div>
-    ${roles.length ? `<div class="card"><h3>What was parsed</h3>
+    ${roles.length ? `<div class="card"><h3>Fill your profile from this résumé</h3>
+      <div class="blurb">Your résumé already answers most of what an application asks. This copies
+        it across — name, contact, address, work history, education, skills with the years each
+        one is backed by — and leaves anything you have already answered alone.</div>
+      <div class="toolbar">
+        <button class="btn" id="btn-preview-fill">See what it would fill</button>
+        <button class="btn primary" id="btn-apply-fill">Fill my profile</button>
+        <label class="switch"><input type="checkbox" id="fill-overwrite"><span class="track"></span>
+          <span class="muted">overwrite what I have already typed</span></label>
+      </div>
+      <div id="fill-preview"></div>
+    </div>
+
+    <div class="card"><h3>What was parsed</h3>
       <dl class="kv">
         <dt>Name</dt><dd>${esc(master.name || "—")}</dd>
         <dt>Contact</dt><dd>${esc(master.email || "—")} · ${esc(master.phone || "—")}</dd>

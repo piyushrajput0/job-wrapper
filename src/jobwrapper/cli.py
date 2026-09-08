@@ -180,10 +180,15 @@ def profile(edit: bool = typer.Option(False, "--edit", help="Open the profile UI
 # --------------------------------------------------------------------------- resume
 @resume_app.command("import")
 def resume_import(path: Path = typer.Argument(..., exists=True),
-                  use_llm: bool = typer.Option(True, "--llm/--no-llm")):
-    """Import a master resume (.tex from Overleaf, or .json/.md/.txt)."""
+                  use_llm: bool = typer.Option(True, "--llm/--no-llm"),
+                  fill_profile: bool = typer.Option(True, "--fill-profile/--no-fill-profile",
+                                                    help="Also fill your profile from it"),
+                  overwrite: bool = typer.Option(False, "--overwrite",
+                                                 help="Replace answers you already gave")):
+    """Import a master resume (.tex from Overleaf, or .pdf/.json/.md/.txt)."""
     setup()
     from .resume.importer import import_master_resume
+    from .resume.to_profile import profile_from_resume
 
     config, store, profile_data, _ = ctx()
     master = import_master_resume(path, LLMClient(config.llm), use_llm=use_llm)
@@ -191,6 +196,20 @@ def resume_import(path: Path = typer.Argument(..., exists=True),
     console.print(f"[green]imported[/green] {len(master.experience)} roles, "
                   f"{len(master.projects)} projects, {len(master.education)} education entries, "
                   f"{len(master.skill_groups)} skill groups")
+
+    if fill_profile:
+        result = profile_from_resume(master, profile_data, overwrite=overwrite)
+        result.profile.save(paths.ensure_layout()["profile"])
+        table = Table("field", "from your resume", box=None, pad_edge=False)
+        for change in result.changes:
+            table.add_row(change.label, str(change.as_dict()["proposed"]))
+        console.print(table)
+        console.print(f"[green]filled {len(result.changes)} profile field(s)[/green]"
+                      + (f", left {len(result.skipped)} you had already answered"
+                         if result.skipped else ""))
+        missing = result.profile.missing_required()
+        console.print(f"still missing: {', '.join(missing)}" if missing
+                      else "[green]profile is complete[/green]")
     store.close()
 
 
