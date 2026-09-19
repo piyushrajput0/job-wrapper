@@ -37,6 +37,7 @@ class ResumeEducation(BaseModel):
     start_date: str = ""
     end_date: str = ""
     gpa: str = ""
+    gpa_scale: str = ""
     details: list[str] = Field(default_factory=list)
 
 
@@ -71,6 +72,8 @@ class MasterResume(BaseModel):
     education: list[ResumeEducation] = Field(default_factory=list)
     projects: list[ResumeProject] = Field(default_factory=list)
     skill_groups: dict[str, list[str]] = Field(default_factory=dict)
+    spoken_languages: dict[str, str] = Field(default_factory=dict)
+    postal_address: dict[str, str] = Field(default_factory=dict)
     certifications: list[str] = Field(default_factory=list)
     extra_sections: list[ResumeSection] = Field(default_factory=list)
     latex_source: str = ""  # original Overleaf .tex, kept for reference/round-trip
@@ -141,6 +144,7 @@ class TailoringPlan(BaseModel):
     skill_groups: dict[str, list[str]] = Field(default_factory=dict)
     keywords_targeted: list[str] = Field(default_factory=list)
     keywords_skipped_unsupported: list[str] = Field(default_factory=list)
+    skills_surfaced: list[str] = Field(default_factory=list)   # evidenced, was not listed
     headline: str = ""
     notes: str = ""
 

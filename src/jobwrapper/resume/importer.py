@@ -37,7 +37,10 @@ PHONE_RE = re.compile(
 
 HEADER_LOCATION_RE = re.compile(
     r"(?<![A-Za-z])([A-Z][A-Za-z.'-]+(?:[ -][A-Z][A-Za-z.'-]+){0,2},\s*"
-    r"(?:[A-Z]{2}\b|[A-Z][a-z]+(?: [A-Z][a-z]+)?))")
+    r"(?:[A-Z]{2}\b|[A-Z][a-z]+(?: [A-Z][a-z]+)?)"
+    # optional third part: "Bengaluru, Karnataka, India" - dropping it leaves the
+    # profile on its default country, which then answers work-authorization questions
+    r"(?:,\s*(?:[A-Z]{2,3}\b|[A-Z][a-z]+(?: [A-Z][a-z]+){0,2}))?)")
 
 
 def find_location(text: str) -> str:
@@ -49,10 +52,81 @@ def find_location(text: str) -> str:
             continue
         if "@" in line or "http" in line:
             line = re.sub(r"\S+@\S+|https?://\S+", " ", line)
+        _, line = split_street(line)
         match = HEADER_LOCATION_RE.search(line)
         if match:
             return match.group(1).strip()
     return ""
+
+
+POSTAL_RES = (
+    re.compile(r"\b[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}\b"),      # UK
+    re.compile(r"\b[A-Z]\d[A-Z]\s?\d[A-Z]\d\b"),                 # Canada
+    re.compile(r"\b\d{5}-\d{4}\b"),                              # US ZIP+4
+    re.compile(r"\b\d{6}\b"),                                    # India PIN, China, Singapore
+    re.compile(r"\b\d{5}\b"),                                    # US, DE, FR, ES, IT
+    re.compile(r"\b\d{4}\b"),                                    # AU, NL, CH, AT, DK
+)
+
+
+STREET_WORDS = re.compile(
+    r"\b(street|st\.|road|rd\.|avenue|ave\.?|lane|ln\.|drive|dr\.|boulevard|blvd\.?|"
+    r"court|ct\.|place|pl\.|way|terrace|parkway|pkwy|highway|apt\.?|apartment|suite|"
+    r"ste\.|unit|flat|floor|block|sector|house|plot|phase|colony|nagar|marg|gali|"
+    r"cross|main|layout|society|towers?|residency|enclave|vihar|puram)\b", re.I)
+
+
+def split_street(line: str) -> tuple[str, str]:
+    """Separate a street from the city part: "1600 Amphitheatre Pkwy, Mountain View, CA".
+
+    Without this the city regex latches onto the street - "Amphitheatre Parkway" becomes
+    the city - and the street is lost instead of filed as line 1.
+    """
+    parts = [p.strip() for p in line.split(",")]
+    taken = 0
+    for part in parts[:-1]:                       # never swallow the last segment
+        # A one-line contact header - "Name · +918765432109 · Rohini, Delhi" - is not an
+        # address followed by a city. Anything carrying a phone number or a contact
+        # separator is the header itself, and eating it loses the city.
+        if "·" in part or "|" in part or "@" in part or re.search(r"\d{7,}", part):
+            break
+        if STREET_WORDS.search(part) or re.match(r"^[\d/#-]+\b", part):
+            taken += 1
+        else:
+            break
+    if not taken:
+        return "", line
+    return ", ".join(parts[:taken]), ", ".join(parts[taken:])
+
+
+def find_postal_address(text: str) -> dict[str, str]:
+    """Street line and postal code from the header, if the résumé carries a full address.
+
+    Applications ask for street and postal code far more often than a résumé prints them,
+    so when one does print them they are worth keeping. Only the line that already looks
+    like an address is searched - a bare 6-digit number elsewhere is not a PIN code.
+    """
+    out = {"line1": "", "postal_code": ""}
+    for line in text.splitlines()[:8]:
+        if re.search(r"universit|college|institute|school|inc\.|llc|ltd|gmbh", line, re.I):
+            continue
+        cleaned = re.sub(r"\S+@\S+|https?://\S+", " ", line).strip()
+        street, remainder = split_street(cleaned)
+        match = HEADER_LOCATION_RE.search(remainder)
+        if not match:
+            continue
+        before = street.strip(" ,;|·-\t")
+        after = remainder[match.end():]
+        for pattern in POSTAL_RES:
+            found = pattern.search(after) or pattern.search(remainder)
+            if found:
+                out["postal_code"] = found.group(0).strip()
+                break
+        if before and len(before) < 120:
+            out["line1"] = before
+        if out["line1"] or out["postal_code"]:
+            return out
+    return out
 
 
 def find_phone(text: str) -> str:
@@ -81,7 +155,50 @@ SECTION_ALIASES = {
     "skills": ["skills", "technical skills", "technologies", "core competencies", "expertise"],
     "summary": ["summary", "profile", "objective", "about", "professional summary"],
     "certifications": ["certifications", "certificates", "licenses"],
+    "languages": ["languages", "language proficiency", "spoken languages"],
 }
+
+# Enough of the world's common résumé languages to tell "Hindi (Native)" from "Go, Java".
+SPOKEN_LANGUAGES = {
+    "english", "hindi", "tamil", "telugu", "kannada", "malayalam", "marathi", "bengali",
+    "gujarati", "punjabi", "urdu", "odia", "assamese", "sanskrit", "nepali", "sinhala",
+    "spanish", "french", "german", "italian", "portuguese", "dutch", "swedish", "norwegian",
+    "danish", "finnish", "polish", "czech", "slovak", "hungarian", "romanian", "bulgarian",
+    "greek", "turkish", "russian", "ukrainian", "serbian", "croatian", "hebrew", "arabic",
+    "persian", "farsi", "pashto", "swahili", "amharic", "yoruba", "igbo", "hausa", "zulu",
+    "afrikaans", "mandarin", "cantonese", "chinese", "japanese", "korean", "vietnamese",
+    "thai", "indonesian", "malay", "tagalog", "filipino", "burmese", "khmer", "lao",
+    "catalan", "basque", "galician", "irish", "welsh", "icelandic", "estonian", "latvian",
+    "lithuanian", "albanian", "macedonian", "slovenian", "bosnian", "georgian", "armenian",
+    "kazakh", "uzbek", "azerbaijani", "mongolian", "tibetan",
+}
+PROFICIENCY_WORDS = {
+    "native": "Native", "mother tongue": "Native", "first language": "Native",
+    "bilingual": "Native", "fluent": "Fluent", "full professional": "Fluent",
+    "professional": "Professional", "working": "Professional", "business": "Professional",
+    "advanced": "Professional", "intermediate": "Conversational",
+    "conversational": "Conversational", "limited": "Conversational",
+    "basic": "Basic", "elementary": "Basic", "beginner": "Basic",
+}
+
+
+def parse_spoken_languages(text: str) -> dict[str, str]:
+    """"English (Professional), Hindi - Native, Tamil" -> {name: proficiency}."""
+    found: dict[str, str] = {}
+    for part in re.split(r"[,;\n•|]| {2,}", text):
+        part = part.strip(" .\t-–—")
+        if not part or len(part) > 60:
+            continue
+        match = re.match(r"([A-Za-z][A-Za-z ]{1,24}?)\s*(?:[(\[:\-–—]\s*(.+?)[)\]]?)?$", part)
+        if not match:
+            continue
+        name = match.group(1).strip()
+        if name.lower() not in SPOKEN_LANGUAGES:
+            continue
+        note = (match.group(2) or "").strip().lower()
+        level = next((v for k, v in PROFICIENCY_WORDS.items() if k in note), "Professional")
+        found.setdefault(name.title(), level)
+    return found
 
 
 def normalize_month_year(value: str) -> str:
@@ -100,6 +217,43 @@ def normalize_month_year(value: str) -> str:
         month = MONTHS.get(match.group(1).lower(), 1)
         return f"{match.group(2)}-{month:02d}"
     return value
+
+
+def read_gpa(text: str) -> tuple[str, str]:
+    """Return (gpa, scale).
+
+    An Indian 10-point CGPA is the common case a 4.0 default gets wrong: "8.64" filed
+    against a 4.0 scale is not a high GPA, it is an impossible one, and it goes straight
+    into the application. Take the scale when the resume states it, else infer from the
+    value - nothing above 5 can be a 4.0-scale GPA, and percentages are their own scale.
+    """
+    match = re.search(
+        r"(?:gpa|cgpa|grade)\s*[:\-]?\s*([\d.]+)\s*(?:/|\s+out\s+of\s+)\s*([\d.]+)", text, re.I)
+    if match:
+        return match.group(1).rstrip("."), match.group(2).rstrip(".")
+    match = re.search(r"(?:gpa|cgpa)\s*[:\-]?\s*([\d.]+)\s*(%)?", text, re.I)
+    if not match:
+        return "", ""
+    value = match.group(1).rstrip(".")
+    if match.group(2):
+        return value, "100"
+    try:
+        number = float(value)
+    except ValueError:
+        return value, ""
+    if number > 10:
+        return value, "100"
+    return value, "10" if number > 5 else "4"
+
+
+def strip_tex_comments(text: str) -> str:
+    """Drop %-comments but keep the line structure.
+
+    Resume templates carry their provenance in a header comment - sb2nov and Jake's
+    both ship `% https://github.com/...` - and scanning it picks the template author's
+    profile instead of the candidate's.
+    """
+    return "\n".join(re.sub(r"(?<!\\)%.*", "", line) for line in text.splitlines())
 
 
 def strip_latex(text: str) -> str:
@@ -145,10 +299,15 @@ def parse_latex(source: str) -> MasterResume:
     preamble, _, body = source.partition(r"\begin{document}")
     resume.latex_preamble = preamble
 
-    email = EMAIL_RE.search(source)
+    scan_body = strip_tex_comments(body)
+    scan_all = strip_tex_comments(source)
+
+    email = EMAIL_RE.search(scan_body) or EMAIL_RE.search(scan_all)
     if email:
         resume.email = email.group(0)
-    for url in URL_RE.findall(source):
+    # Body first: the candidate's own links live after \begin{document}, and a
+    # preamble URL is usually the template's or a package's.
+    for url in URL_RE.findall(scan_body) + URL_RE.findall(scan_all):
         low = url.lower()
         for key in ("linkedin", "github", "twitter", "medium", "kaggle", "orcid"):
             if key in low:
@@ -158,6 +317,7 @@ def parse_latex(source: str) -> MasterResume:
             resume.links.setdefault("website", url)
     resume.phone = find_phone(strip_latex(body[:2000]))
     resume.location = find_location(strip_latex(body[:1200]))
+    resume.postal_address = find_postal_address(strip_latex(body[:1200]))
 
     # name: the first \Huge/\LARGE/\name{} chunk, else the first non-empty text line
     two_part = re.search(r"\\(?:name|author)\s*\{([^{}]{1,40})\}\s*\{([^{}]{0,40})\}", source)
@@ -209,6 +369,17 @@ def parse_latex(source: str) -> MasterResume:
                 items = [s.strip() for s in re.split(r"[,;]", strip_latex(chunk)) if 1 < len(s.strip()) < 40]
                 if items:
                     resume.skill_groups["Skills"] = items[:40]
+        elif kind == "languages":
+            flat = strip_latex(chunk)
+            spoken = parse_spoken_languages(flat)
+            if spoken:
+                resume.spoken_languages.update(spoken)
+            else:
+                # "Programming Languages" is a skills heading wearing the same word
+                for line in flat.splitlines():
+                    parsed = _split_skill_line(line)
+                    if parsed:
+                        resume.skill_groups[parsed[0]] = parsed[1]
         elif kind == "certifications":
             resume.certifications = [strip_latex(i) for i in re.findall(r"\\item\s*(.+)", chunk)]
         elif kind in {"experience", "projects", "education"}:
@@ -387,18 +558,25 @@ def _parse_entries(chunk: str, kind: str, resume: MasterResume) -> None:
             institution = info["company"] or info["title"]
             degree = info["degree"]
             text = f"{' '.join(args)} {body}"
-            gpa = re.search(r"(?:gpa|cgpa)\s*[:\-]?\s*([\d.]+)", text, re.I)
+            gpa_value, gpa_scale = read_gpa(text)
             minor = re.search(r"minor\s*(?:in|:)?\s*([A-Za-z &]+)", text, re.I)
             if not institution and not degree:
                 continue
+            degree = _clean_degree(degree)
             resume.education.append(ResumeEducation(
                 institution=institution[:120], degree=degree[:120],
                 field_of_study=_field_of_study(degree),
                 minor=(minor.group(1).strip().rstrip(". ")[:60] if minor else ""),
                 start_date=info["start"], end_date=info["end"],
                 location=info["location"],
-                gpa=(gpa.group(1) if gpa else ""),
+                gpa=gpa_value, gpa_scale=gpa_scale,
                 details=_useful_education_details(bullets)[:3]))
+
+
+def _clean_degree(degree: str) -> str:
+    """"B.Tech in ECE, Minor in CS; GPA: 8.64/10" is three fields, not a degree name."""
+    return re.split(r"\s*[(\u2022;]|\s+GPA\b|\s+CGPA\b|,?\s+Minor\b",
+                    degree, maxsplit=1, flags=re.I)[0].strip(" ,;")
 
 
 def _useful_education_details(bullets: list[str]) -> list[str]:
@@ -508,19 +686,19 @@ def _parse_plain_entries(lines: list[str], kind: str, resume: MasterResume) -> N
                 start_date=start, end_date=end))
         else:
             text = " ".join(block)
-            gpa = re.search(r"(?:gpa|cgpa)\s*[:\-]?\s*([\d.]+)", text, re.I)
+            gpa_value, gpa_scale = read_gpa(text)
             minor = re.search(r"minor\s*(?:in|:)?\s*([A-Za-z &]+)", text, re.I)
             institution = title_line if not DEGREE_WORDS.search(title_line) else company
             degree = title_line if DEGREE_WORDS.search(title_line) else (
                 company if DEGREE_WORDS.search(company) else "")
             if not institution and not degree:
                 continue
-            degree = re.split(r"\s*[(\u2022]|\s+GPA\b|\s+Minor\b", degree, maxsplit=1)[0].strip()
+            degree = _clean_degree(degree)
             resume.education.append(ResumeEducation(
                 institution=(institution or company)[:120], degree=degree[:120],
                 field_of_study=_field_of_study(degree), location=location,
                 minor=(minor.group(1).strip().rstrip(". ")[:60] if minor else ""),
-                start_date=start, end_date=end, gpa=(gpa.group(1) if gpa else ""),
+                start_date=start, end_date=end, gpa=gpa_value, gpa_scale=gpa_scale,
                 details=_useful_education_details(bullets)[:3]))
 
 

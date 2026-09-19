@@ -244,14 +244,17 @@ const Views = (() => {
         <span class="mono">.tex</span> (or a .json/.md/.txt) once; every application then gets its own
         tailored PDF generated from it.</div>
       <div class="toolbar">
-        <input type="text" id="import-path" style="flex:1;min-width:280px"
-          placeholder="/Users/you/resume.tex   (.tex, .pdf, .json, .md or .txt)">
+        <input type="file" id="import-file" accept=".tex,.pdf,.json,.md,.txt" hidden>
+        <button class="btn" id="btn-choose">Choose file…</button>
+        <input type="text" id="import-path" style="flex:1;min-width:240px"
+          placeholder="…or paste a path: /Users/you/resume.tex">
         <label class="switch"><input type="checkbox" id="import-llm" checked><span class="track"></span>
           <span class="muted">use the model to parse</span></label>
         <label class="switch"><input type="checkbox" id="import-fill" checked><span class="track"></span>
           <span class="muted">fill my profile too</span></label>
         <button class="btn primary" id="btn-import">Import</button>
       </div>
+      <div id="import-status" class="muted" style="font-size:12.5px;margin-top:6px"></div>
       <div class="muted" style="font-size:12.5px">LaTeX engines detected: ${esc(status.resume.latex_engines.join(", "))}</div>
     </div>
     ${roles.length ? `<div class="card"><h3>Fill your profile from this résumé</h3>

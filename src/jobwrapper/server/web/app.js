@@ -333,6 +333,110 @@
     if (!apTimer) apTimer = setInterval(pollRun, 2000);
   }
 
+  /* ---------------------------------------------------------------- resume */
+  function wireResume() {
+    const status = (message, tone) => {
+      const box = el("import-status");
+      if (box) box.innerHTML = tone === "bad"
+        ? `<span style="color:var(--bad)">${Form.esc(message)}</span>`
+        : Form.esc(message);
+    };
+
+    const chooser = el("import-file");
+    const choose = el("btn-choose");
+    if (choose && chooser) {
+      choose.onclick = () => chooser.click();
+      chooser.onchange = async () => {
+        const file = chooser.files && chooser.files[0];
+        if (!file) return;
+        status(`Uploading ${file.name}…`);
+        try {
+          const buffer = await file.arrayBuffer();
+          // chunked so a multi-MB PDF does not blow the argument limit
+          const bytes = new Uint8Array(buffer);
+          let binary = "";
+          for (let i = 0; i < bytes.length; i += 0x8000)
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+          const saved = await api.post("/api/resume/upload",
+            { name: file.name, content: btoa(binary) });
+          el("import-path").value = saved.path;
+          status(`${file.name} uploaded — now click Import.`);
+        } catch (error) {
+          status(error.message, "bad");
+        }
+      };
+    }
+
+    const importButton = el("btn-import");
+    if (importButton) importButton.onclick = async () => {
+      const path = el("import-path").value.trim();
+      if (!path) return status("Choose a file, or paste its path.", "bad");
+      importButton.disabled = true;
+      status("Parsing…");
+      try {
+        const out = await api.post("/api/resume/import", {
+          path,
+          use_llm: el("import-llm").checked,
+          fill_profile: el("import-fill").checked,
+        });
+        const filled = out.profile_fields_filled;
+        const summary = `Parsed ${out.roles} role(s), ${out.education} education entr(ies), `
+          + `${out.skill_groups} skill group(s)`
+          + (el("import-fill").checked ? ` · filled ${filled} profile field(s)` : "");
+        // the page shows what was parsed, so it has to be rebuilt, and the sidebar counts
+        // and the profile form both changed underneath us - report after, or the fresh
+        // DOM throws the message away
+        await render();
+        status(summary);
+      } catch (error) {
+        status(error.message, "bad");
+      } finally {
+        importButton.disabled = false;
+      }
+    };
+
+    const renderFill = (result, applied) => {
+      const box = el("fill-preview");
+      if (!box) return;
+      const rows = (result.changes || []).map((c) =>
+        `<tr><td>${Form.esc(c.label || c.path)}</td>
+             <td class="mono">${Form.esc(String(c.proposed ?? ""))}</td></tr>`).join("");
+      box.innerHTML = rows
+        ? `<p class="muted" style="margin:10px 0 6px">${applied
+            ? `Filled ${result.changes.length} field(s).`
+            : `${result.changes.length} field(s) would be filled`}${
+            result.skipped && result.skipped.length
+              ? ` · ${result.skipped.length} left alone because you already answered them` : ""}</p>
+           <table class="table"><thead><tr><th>Field</th><th>From your résumé</th></tr></thead>
+           <tbody>${rows}</tbody></table>`
+        : `<p class="muted" style="margin:10px 0 0">Nothing new to fill — your profile already
+           answers everything this résumé does.</p>`;
+    };
+
+    const preview = el("btn-preview-fill");
+    if (preview) preview.onclick = async () => {
+      try {
+        renderFill(await api.post("/api/profile/from-resume",
+          { apply: false, overwrite: el("fill-overwrite").checked }), false);
+      } catch (error) { status(error.message, "bad"); }
+    };
+
+    const applyFill = el("btn-apply-fill");
+    if (applyFill) applyFill.onclick = async () => {
+      applyFill.disabled = true;
+      try {
+        const result = await api.post("/api/profile/from-resume",
+          { apply: true, overwrite: el("fill-overwrite").checked });
+        renderFill(result, true);
+        refreshSidebar();
+      } catch (error) {
+        status(error.message, "bad");
+      } finally {
+        applyFill.disabled = false;
+      }
+    };
+  }
+
   async function wireSettings() {
     const config = await api.get("/api/config");
     const split = (id) => el(id).value.split(",").map((s) => s.trim()).filter(Boolean);

@@ -186,6 +186,7 @@ class Tailor:
             plan.skill_groups[group] = sorted(
                 skills, key=lambda s: (0 if (canonical_skill(s) or s).lower() in wanted else 1,
                                        skills.index(s)))
+        plan.skills_surfaced = self._surface_supported_skills(keywords, plan.skill_groups)
 
         top_terms = [k.term for k in keywords if k.in_master][:6]
         base = self.master.summary or self.profile.summary
@@ -202,6 +203,48 @@ class Tailor:
         plan.headline = f"{role_noun}" if role_noun else self.master.headline
         plan.notes = "deterministic ranker (no model call)"
         return plan
+
+    def _surface_supported_skills(self, keywords: list[Keyword],
+                                   groups: dict[str, list[str]]) -> list[str]:
+        """Promote JD terms the résumé already demonstrates into the skills list.
+
+        A term the master evidences in a bullet but never lists - "Kafka" described in a
+        role, absent from Skills - is a keyword the candidate has genuinely earned and the
+        ATS cannot see. Surfacing it is tailoring. Terms the résumé cannot support are not
+        added here at any truthfulness setting: `in_master` is the gate, and the firewall
+        re-checks it afterwards.
+        """
+        listed = {(canonical_skill(s) or s).lower()
+                  for skills in groups.values() for s in skills}
+        budget = max(0, self.config.resume.max_new_keywords)
+        added: list[str] = []
+        for keyword in sorted((k for k in keywords if k.in_master and k.kind == "skill"),
+                              key=lambda k: -k.importance):
+            if len(added) >= budget:
+                break
+            term = keyword.canonical or keyword.term
+            if term.lower() in listed:
+                continue
+            listed.add(term.lower())
+            groups.setdefault(self._group_for(term), []).insert(0, term)
+            added.append(term)
+        return added
+
+    def _group_for(self, skill: str) -> str:
+        """The skills heading a surfaced term belongs under, matching the importer's labels."""
+        from ..pipeline.match import _taxonomy
+
+        labels = {"language": "Languages", "frontend": "Frontend", "backend": "Backend",
+                  "data": "Data", "ml": "Machine Learning", "cloud": "Cloud & Infrastructure",
+                  "mobile": "Mobile", "tools": "Tools", "practice": "Practices"}
+        category = _taxonomy()["skills"].get(skill, {}).get("category", "tools")
+        wanted = labels.get(category, "Tools")
+        for existing in self.master.skill_groups:
+            if existing.lower() == wanted.lower():
+                return existing
+        # no matching heading on this résumé - put it where the most skills already are
+        return max(self.master.skill_groups, key=lambda g: len(self.master.skill_groups[g]),
+                   default=wanted) if self.master.skill_groups else wanted
 
     # ------------------------------------------------------------------ applying
     def _apply_plan(self, plan: TailoringPlan, keywords: list[Keyword],
@@ -250,14 +293,35 @@ class Tailor:
             order += [i for i in range(len(out.projects)) if i not in order]
             out.projects = [out.projects[i] for i in order][: options.max_projects]
 
+        # Projects were only ever reordered, so a JD term the project itself describes
+        # ("built the ingestion with Kafka") never reached its technology line, where both
+        # the ATS and a skimming reader look first. Only terms that project's own text
+        # supports are added, and only a couple, so the entry still reads as written.
+        for project in out.projects:
+            own_text = (f"{project.name} {project.description} "
+                        + " ".join(b.text for b in project.bullets)).lower()
+            listed = {t.lower() for t in project.technologies}
+            for keyword in sorted(keywords, key=lambda k: -k.importance):
+                if len(project.technologies) >= len(listed) + 3:
+                    break
+                term = keyword.canonical or keyword.term
+                if term.lower() in listed or keyword.kind != "skill":
+                    continue
+                if re.search(rf"(?<![a-z0-9]){re.escape(term.lower())}(?![a-z0-9])", own_text):
+                    project.technologies.append(term)
+
         if plan.skill_groups:
             merged: dict[str, list[str]] = {}
             master_pool = {s.lower(): s for group in self.master.skill_groups.values()
                            for s in group}
+            # A term the résumé demonstrates in a bullet or a project, but never lists under
+            # Skills, is still the candidate's. Let it through; anything the master cannot
+            # evidence at all still cannot be added, and the firewall re-checks the result.
+            evidenced = {s.lower(): s for s in extract_skills(self.master.text_corpus())}
             for group, skills in plan.skill_groups.items():
-                # only skills that exist in the master survive - the model cannot add here
-                merged[group] = [master_pool.get(s.lower(), s) for s in skills
-                                 if s.lower() in master_pool]
+                merged[group] = [master_pool.get(s.lower()) or evidenced.get(s.lower(), s)
+                                 for s in skills
+                                 if s.lower() in master_pool or s.lower() in evidenced]
             for group, skills in self.master.skill_groups.items():
                 if group not in merged or not merged[group]:
                     merged[group] = skills

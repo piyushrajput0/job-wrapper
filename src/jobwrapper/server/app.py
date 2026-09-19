@@ -562,6 +562,36 @@ def create_app() -> FastAPI:
                 "education": len(master.education), "skill_groups": len(master.skill_groups),
                 "profile_fields_filled": filled}
 
+    @app.post("/api/resume/upload")
+    def upload_resume(payload: dict[str, Any] = Body(...),
+                      s: AppState = Depends(get_state)) -> dict[str, Any]:
+        """Take the file itself, base64'd, so the desktop app can use a file picker.
+
+        Typing an absolute path is fine in a terminal and hopeless in a window.
+        """
+        import base64
+        import binascii
+
+        name = Path(str(payload.get("name") or "resume")).name  # no traversal
+        suffix = Path(name).suffix.lower()
+        if suffix not in {".tex", ".pdf", ".json", ".md", ".txt"}:
+            raise HTTPException(status_code=400,
+                                detail=f"{suffix or 'that file type'} is not supported - "
+                                       "use .tex, .pdf, .json, .md or .txt")
+        try:
+            blob = base64.b64decode(str(payload.get("content") or ""), validate=True)
+        except (binascii.Error, ValueError):
+            raise HTTPException(status_code=400, detail="could not decode the upload") from None
+        if not blob:
+            raise HTTPException(status_code=400, detail="the file is empty")
+        if len(blob) > 12_000_000:
+            raise HTTPException(status_code=413, detail="that file is larger than 12 MB")
+        target = s.layout["overleaf"] / "uploaded"
+        target.mkdir(parents=True, exist_ok=True)
+        destination = target / name
+        destination.write_bytes(blob)
+        return {"ok": True, "path": str(destination), "bytes": len(blob)}
+
     @app.post("/api/profile/from-resume")
     def fill_profile_from_resume(payload: dict[str, Any] = Body(default={}),
                                  s: AppState = Depends(get_state)) -> dict[str, Any]:

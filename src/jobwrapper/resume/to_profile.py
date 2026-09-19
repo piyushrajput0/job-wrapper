@@ -15,7 +15,7 @@ from typing import Any
 
 from ..logging_setup import get
 from ..models import Profile
-from ..models.profile import Education, Experience, Project, Skill, SkillGroup
+from ..models.profile import Education, Experience, Language, Project, Skill, SkillGroup
 from ..models.resume import MasterResume
 
 log = get("resume.profile")
@@ -45,6 +45,19 @@ COUNTRY_ALIASES = {
     "france": ("France", "FR"), "netherlands": ("Netherlands", "NL"),
     "australia": ("Australia", "AU"), "singapore": ("Singapore", "SG"),
     "ireland": ("Ireland", "IE"), "spain": ("Spain", "ES"), "poland": ("Poland", "PL"),
+}
+CODE_TO_COUNTRY = {
+    "+91": ("India", "IN"), "+1": ("United States", "US"), "+44": ("United Kingdom", "GB"),
+    "+49": ("Germany", "DE"), "+33": ("France", "FR"), "+31": ("Netherlands", "NL"),
+    "+61": ("Australia", "AU"), "+65": ("Singapore", "SG"), "+353": ("Ireland", "IE"),
+    "+34": ("Spain", "ES"), "+48": ("Poland", "PL"), "+81": ("Japan", "JP"),
+    "+82": ("South Korea", "KR"), "+86": ("China", "CN"), "+55": ("Brazil", "BR"),
+    "+27": ("South Africa", "ZA"), "+971": ("United Arab Emirates", "AE"),
+    "+880": ("Bangladesh", "BD"), "+92": ("Pakistan", "PK"), "+94": ("Sri Lanka", "LK"),
+    "+977": ("Nepal", "NP"), "+64": ("New Zealand", "NZ"), "+46": ("Sweden", "SE"),
+    "+41": ("Switzerland", "CH"), "+39": ("Italy", "IT"), "+351": ("Portugal", "PT"),
+    "+52": ("Mexico", "MX"), "+63": ("Philippines", "PH"), "+84": ("Vietnam", "VN"),
+    "+62": ("Indonesia", "ID"), "+60": ("Malaysia", "MY"), "+66": ("Thailand", "TH"),
 }
 NAME_SUFFIXES = {"jr", "jr.", "sr", "sr.", "ii", "iii", "iv", "phd", "ph.d.", "md", "mba"}
 
@@ -95,12 +108,40 @@ def split_name(full: str) -> tuple[str, str, str, str]:
     return parts[0], " ".join(parts[1:-1]), parts[-1], suffix
 
 
+# ITU calling codes, as a set so a prefix can be recognised rather than guessed. A greedy
+# "first three digits" read turns "+918765432109" into "+918" / "920445907" - a wrong code
+# and a nine-digit number, on every application.
+CALLING_CODES = {
+    "1", "7", "20", "27", "30", "31", "32", "33", "34", "36", "39", "40", "41", "43", "44",
+    "45", "46", "47", "48", "49", "51", "52", "54", "55", "56", "57", "58", "60", "61", "62",
+    "63", "64", "65", "66", "81", "82", "84", "86", "90", "91", "92", "93", "94", "95", "98",
+    "211", "212", "213", "216", "218", "220", "221", "233", "234", "249", "251", "254", "255",
+    "256", "260", "263", "264", "265", "266", "267", "268", "269", "351", "352", "353", "354",
+    "355", "356", "357", "358", "359", "370", "371", "372", "373", "374", "375", "376", "377",
+    "380", "381", "382", "385", "386", "387", "389", "420", "421", "423", "501", "502", "503",
+    "504", "505", "506", "507", "509", "591", "593", "595", "598", "670", "673", "674",
+    "675", "676", "677", "679", "680", "690", "691", "852", "853", "855", "856", "880", "886",
+    "960", "961", "962", "963", "964", "965", "966", "967", "968", "970", "971", "972", "973",
+    "974", "975", "976", "977", "992", "993", "994", "995", "996", "998",
+}
+
+
 def split_phone(raw: str) -> tuple[str, str]:
     """"+44 7700 900123" -> ("+44", "7700900123"). Keeps the number as digits."""
     text = (raw or "").strip()
-    match = re.match(r"^\+(\d{1,3})[\s.-]?(.*)$", text)
-    if match:
-        return f"+{match.group(1)}", re.sub(r"\D", "", match.group(2))
+    if text.startswith("+") or text.startswith("00"):
+        digits = re.sub(r"\D", "", text)
+        if text.startswith("00"):
+            digits = digits[2:]
+        # longest real code first, but only if what is left is a plausible number
+        for size in (3, 2, 1):
+            code, rest = digits[:size], digits[size:]
+            if code in CALLING_CODES and 6 <= len(rest) <= 12:
+                return f"+{code}", rest
+        for size in (3, 2, 1):                       # nothing plausible: take a real code anyway
+            if digits[:size] in CALLING_CODES:
+                return f"+{digits[:size]}", digits[size:]
+        return "", digits
     digits = re.sub(r"\D", "", text)
     if len(digits) == 11 and digits.startswith("1"):
         return "+1", digits[1:]
@@ -219,7 +260,17 @@ def profile_from_resume(master: MasterResume, existing: Profile | None = None,
         put("contact.phone_country_code", "Country calling code", code)
 
     # address, as far as a résumé ever states it
-    for key, value in parse_location(master.location).items():
+    located = parse_location(master.location)
+    if not located.get("country") and master.phone:
+        # A résumé that prints "Rohini, Delhi" and "+91..." has said which country it is.
+        # Leaving the model default in place instead makes the profile claim United States,
+        # and that answer goes on to drive the work-authorization questions.
+        inferred = CODE_TO_COUNTRY.get(split_phone(master.phone)[0])
+        if inferred:
+            located["country"], located["country_code"] = inferred
+    for key, value in located.items():
+        put(f"address.{key}", f"Address {key.replace('_', ' ')}", value)
+    for key, value in (master.postal_address or {}).items():
         put(f"address.{key}", f"Address {key.replace('_', ' ')}", value)
 
     # links
@@ -251,10 +302,17 @@ def profile_from_resume(master: MasterResume, existing: Profile | None = None,
             institution=edu.institution, degree_name=edu.degree,
             degree_level=degree_level(edu.degree), field_of_study=edu.field_of_study,
             minor=edu.minor, gpa=edu.gpa, start_date=edu.start_date, end_date=edu.end_date,
-            location=edu.location, graduated=bool(edu.end_date))
+            location=edu.location, graduated=bool(edu.end_date),
+            **({"gpa_scale": edu.gpa_scale} if edu.gpa_scale else {}))
         for edu in master.education if edu.institution or edu.degree
     ]
     put_list("education", "Education", education)
+
+    # spoken languages
+    if master.spoken_languages:
+        put_list("languages", "Languages",
+                 [Language(name=name, proficiency=level)
+                  for name, level in master.spoken_languages.items()])
 
     # projects
     projects = [

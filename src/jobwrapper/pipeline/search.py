@@ -23,12 +23,14 @@ class SearchReport:
     new: int = 0
     updated: int = 0
     disqualified: int = 0
+    off_target: int = 0
     per_source: dict[str, int] = field(default_factory=dict)
     errors: dict[str, str] = field(default_factory=dict)
 
     def as_dict(self) -> dict:
         return {"fetched": self.fetched, "after_dedupe": self.after_dedupe, "new": self.new,
                 "updated": self.updated, "disqualified": self.disqualified,
+                "off_target": self.off_target,
                 "per_source": self.per_source, "errors": self.errors}
 
 
@@ -95,6 +97,7 @@ class SearchEngine:
 
         for job in deduped:
             if not self._title_prefilter(job):
+                report.off_target += 1
                 continue
             result = score_job(job, self.profile, self.config.search, self.config.match)
             if result.disqualified:

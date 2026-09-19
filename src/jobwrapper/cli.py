@@ -285,7 +285,11 @@ def search(source: list[str] = typer.Option(None, "--source", "-s", help="Only t
     console.print(f"[bold]{report.fetched}[/bold] fetched · "
                   f"[bold]{report.after_dedupe}[/bold] after dedupe · "
                   f"[green]{report.new}[/green] new · {report.updated} updated · "
-                  f"{report.disqualified} filtered out")
+                  f"{report.disqualified} filtered out · "
+                  f"{report.off_target} off target")
+    if report.off_target and report.off_target > 4 * (report.new + report.updated):
+        console.print("  [yellow]most postings never matched your titles or keywords - "
+                      "widen them in Settings if you expected more[/yellow]")
     for source_id, error in report.errors.items():
         console.print(f"  [red]{source_id}[/red]: {error[:90]}")
     if show:
