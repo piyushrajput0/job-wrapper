@@ -10,6 +10,7 @@ The last fallback matters: it means a user with no TeX installation still gets a
 from __future__ import annotations
 
 import concurrent.futures
+import os
 import re
 import shutil
 import subprocess
@@ -35,8 +36,35 @@ class CompileResult:
     error: str = ""
 
 
+# A .app launched from Finder inherits launchd's PATH - /usr/bin:/bin:/usr/sbin:/sbin -
+# not the shell's. Homebrew and MacTeX both install outside it, so an engine the user has
+# installed is invisible to the desktop build while working fine from a terminal.
+EXTRA_BIN_DIRS = (
+    "/opt/homebrew/bin",          # Homebrew, Apple silicon
+    "/usr/local/bin",             # Homebrew, Intel
+    "/Library/TeX/texbin",        # MacTeX
+    "/usr/local/texlive/2025/bin/universal-darwin",
+    "/usr/local/texlive/2024/bin/universal-darwin",
+    str(Path.home() / ".cargo" / "bin"),          # cargo install tectonic
+    str(Path.home() / ".local" / "bin"),
+    "/snap/bin",
+)
+
+
+def find_engine(name: str) -> str | None:
+    """Full path to a LaTeX engine, searching beyond PATH."""
+    found = shutil.which(name)
+    if found:
+        return found
+    for directory in EXTRA_BIN_DIRS:
+        candidate = Path(directory) / name
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
+    return None
+
+
 def available_engines() -> list[str]:
-    return [engine for engine in ENGINES if shutil.which(engine)]
+    return [engine for engine in ENGINES if find_engine(engine)]
 
 
 def count_pages(pdf: Path) -> int:
@@ -73,19 +101,20 @@ def compile_latex(tex_source: str, out_pdf: Path, config: ResumeConfig | None = 
         tex_file.write_text(tex_source, encoding="utf-8")
 
         for engine in engines:
+            binary = find_engine(engine) or engine
             if engine == "tectonic":
-                code, output = _run(["tectonic", "-X", "compile", "--outfmt", "pdf",
+                code, output = _run([binary, "-X", "compile", "--outfmt", "pdf",
                                      "--keep-logs", "-o", str(workdir), str(tex_file)], workdir)
                 if code != 0:  # older tectonic has no `-X compile`
-                    code, output = _run(["tectonic", str(tex_file)], workdir)
+                    code, output = _run([binary, str(tex_file)], workdir)
             elif engine == "latexmk":
-                code, output = _run(["latexmk", "-pdf", "-interaction=nonstopmode",
+                code, output = _run([binary, "-pdf", "-interaction=nonstopmode",
                                      "-halt-on-error", str(tex_file)], workdir)
             else:
-                code, output = _run([engine, "-interaction=nonstopmode", "-halt-on-error",
+                code, output = _run([binary, "-interaction=nonstopmode", "-halt-on-error",
                                      str(tex_file)], workdir)
                 if code == 0:  # second pass for references/page numbers
-                    _run([engine, "-interaction=nonstopmode", str(tex_file)], workdir)
+                    _run([binary, "-interaction=nonstopmode", str(tex_file)], workdir)
 
             produced = workdir / "resume.pdf"
             if produced.exists() and produced.stat().st_size > 1000:

@@ -95,3 +95,17 @@ def test_spoken_languages_are_read_and_programming_ones_are_not():
         "English": "Professional", "Hindi": "Native", "Kannada": "Conversational"}
     assert parse_spoken_languages("Go, Java, Python, SQL") == {}
     assert parse_latex(TEMPLATE_HEADER).spoken_languages["Hindi"] == "Native"
+
+
+def test_a_latex_engine_outside_path_is_still_found(tmp_path, monkeypatch):
+    """A Finder-launched .app gets launchd's PATH, which has no /opt/homebrew/bin."""
+    from jobwrapper.resume import compile as compile_module
+
+    fake = tmp_path / "tectonic"
+    fake.write_text("#!/bin/sh\nexit 0\n")
+    fake.chmod(0o755)
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")
+    assert compile_module.find_engine("tectonic") is None
+    monkeypatch.setattr(compile_module, "EXTRA_BIN_DIRS", (str(tmp_path),))
+    assert compile_module.find_engine("tectonic") == str(fake)
+    assert "tectonic" in compile_module.available_engines()
