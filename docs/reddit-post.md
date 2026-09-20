@@ -2,10 +2,11 @@
 
 ## Short version (use this one)
 
-**Title:** *I built an open-source tool that tailors your résumé to each job and fills the applications — looking for people to break it*
+**Title:** *I built an open-source tool that tailors your résumé to each job and fills the applications — would love people to try it and tell me what breaks*
 
-I've been building Job Wrapper for a few months and it finally works well enough that I need
-other people's résumés to find what's still broken.
+I've been building Job Wrapper for a few months. It works for me, which is exactly the point
+where I stop being able to find its bugs — so I'm looking for people to actually use it and
+tell me how it went.
 
 It pulls postings from 19 job boards, scores them against your profile, then for each job it
 reads the description, rewrites your LaTeX résumé around its keywords, compiles a fresh PDF,
@@ -20,22 +21,25 @@ Every generated résumé is diffed against your master copy and unsupported clai
 before a PDF exists. I built it that way because "let AI write your résumé" makes things you
 can't defend in an interview.
 
-Runs entirely on your machine. Works with no API key at all (there's a deterministic fallback),
-or point it at Ollama and it's fully local and free. Python + Playwright, MIT, 229 tests.
+Everything runs on your machine. Your résumé and profile never leave it — there's no account, no
+server of mine, nothing to upload. Works with no API key at all (there's a deterministic
+fallback), or point it at Ollama and it's fully local and free. Python + Playwright, MIT,
+229 tests.
 
-**What I actually need:** a résumé it parses wrong. Every new template I try breaks something.
-Last week alone it was reading the GitHub URL out of the template's own header comment, mangling
-Indian phone numbers, filing a 10-point CGPA against a 4.0 scale, and defaulting everyone's
-country to the US — which then quietly answers the work-authorisation questions. All of those
-produce a *wrong value* rather than an error. There are more.
+**What would help most: just try it and tell me what happened.** Point it at your own résumé and
+see what it gets wrong — every template is different and mine is the only one it has really been
+tested against. Last week alone it was reading the GitHub URL out of the template's own header
+comment, mangling Indian phone numbers, filing a 10-point CGPA against a 4.0 scale, and
+defaulting everyone's country to the US, which then quietly answers the work-authorisation
+questions. All of those produce a *wrong value* rather than an error, so they're easy to miss.
+There are certainly more.
 
-Also happy to take: job sources I haven't added, ATSes it can't fill, and Windows/Linux testing
-(I've only road-tested macOS).
+Feedback of any kind is welcome — "the setup docs confused me here", "this felt sketchy",
+"it crashed on Windows", "I don't think this should exist". Open an issue or just reply here.
+If you feel like contributing code, brilliant, and if you'd rather just kick the tyres and say
+what you thought, that's genuinely just as useful.
 
 https://github.com/piyushrajput0/job-wrapper
-
-Fork it, break it, tell me what went wrong. And if you think the whole idea is bad, I'd rather
-hear that now than after someone's application goes out wrong.
 
 ---
 
