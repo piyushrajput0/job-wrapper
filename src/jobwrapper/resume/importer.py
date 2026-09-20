@@ -229,9 +229,15 @@ def read_gpa(text: str) -> tuple[str, str]:
     """
     match = re.search(
         r"(?:gpa|cgpa|grade)\s*[:\-]?\s*([\d.]+)\s*(?:/|\s+out\s+of\s+)\s*([\d.]+)", text, re.I)
+    if not match:
+        match = re.search(
+            r"\b([\d.]+)\s*(?:/|\s+out\s+of\s+)\s*([\d.]+)\s*(?:gpa|cgpa)\b", text, re.I)
     if match:
         return match.group(1).rstrip("."), match.group(2).rstrip(".")
     match = re.search(r"(?:gpa|cgpa)\s*[:\-]?\s*([\d.]+)\s*(%)?", text, re.I)
+    if not match:
+        # "8.68 CGPA" - Indian résumés put the number first about as often as not
+        match = re.search(r"\b([\d.]+)\s*(%)?\s*(?:gpa|cgpa)\b", text, re.I)
     if not match:
         return "", ""
     value = match.group(1).rstrip(".")

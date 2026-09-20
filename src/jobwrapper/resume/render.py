@@ -45,7 +45,13 @@ def _date_range(start: str, end: str) -> str:
             return f"{months[index - 1]} {year}"
         return value
 
-    left, right = pretty(start), pretty(end) or "Present"
+    left, right = pretty(start), pretty(end)
+    if not left and not right:
+        # No dates at all - many résumés date neither side of an education entry. Falling
+        # through to "Present" made a finished degree read as still in progress.
+        return ""
+    if not right:
+        right = "Present"          # only meaningful once there is a start to run from
     return f"{left} \u2013 {right}" if left else right
 
 

@@ -9,7 +9,7 @@ A truthfulness firewall in front of the résumé writer, and a human in front of
 [![CI](https://github.com/piyushrajput0/job-wrapper/actions/workflows/ci.yml/badge.svg)](https://github.com/piyushrajput0/job-wrapper/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-226%20passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-229%20passing-brightgreen.svg)](tests/)
 
 *Everything runs on your machine. Nothing is uploaded anywhere except the job boards you apply to.*
 
@@ -553,7 +553,7 @@ Documentation: [spec & design decisions](docs/00-SPEC.md) ·
 
 ```bash
 uv sync --extra dev
-uv run pytest -q                              # 226 tests
+uv run pytest -q                              # 229 tests
 uv run ruff check src tests scripts
 uv run python scripts/build_field_catalog.py  # regenerate the field catalog
 uv run python scripts/sync_extension_data.py  # push the knowledge base into the extension

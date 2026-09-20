@@ -17,7 +17,10 @@
 \setlength{\parindent}{0pt}
 \setlist[itemize]{leftmargin=1.1em,topsep=1pt,itemsep=0.6pt,parsep=0pt}
 
-\titleformat{\section}{\color{accent}\bfseries\large\uppercase}{}{0em}{}[\vspace{-0.65em}\color{accent}\rule{\linewidth}{0.7pt}]
+%% \uppercase in the format block uppercases every token that follows it, including the
+%% colour name in the after-code - \color{accent} became \color{ACCENT} and xcolor
+%% aborted the run. \MakeUppercase belongs in the before-code, where it takes the title.
+\titleformat{\section}{\color{accent}\bfseries\large}{}{0em}{\MakeUppercase}[\vspace{-0.65em}\color{accent}\rule{\linewidth}{0.7pt}]
 \titlespacing{\section}{0pt}{7pt}{4pt}
 
 \newcommand{\role}[4]{%

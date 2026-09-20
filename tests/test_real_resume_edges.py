@@ -6,6 +6,8 @@ re-break and expensive to notice, because a wrong value looks exactly like a rig
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 from jobwrapper.resume.importer import (
     find_location,
     find_postal_address,
@@ -105,7 +107,34 @@ def test_a_latex_engine_outside_path_is_still_found(tmp_path, monkeypatch):
     fake.write_text("#!/bin/sh\nexit 0\n")
     fake.chmod(0o755)
     monkeypatch.setenv("PATH", "/usr/bin:/bin")
-    assert compile_module.find_engine("tectonic") is None
+    monkeypatch.setattr(compile_module, "EXTRA_BIN_DIRS", ())
+    assert compile_module.find_engine("tectonic") is None   # nothing on PATH, nowhere to look
     monkeypatch.setattr(compile_module, "EXTRA_BIN_DIRS", (str(tmp_path),))
     assert compile_module.find_engine("tectonic") == str(fake)
     assert "tectonic" in compile_module.available_engines()
+
+
+def test_gpa_written_before_the_word_is_still_read():
+    """Indian résumés put the number first about as often as last: "8.68 CGPA"."""
+    assert read_gpa("8.68 CGPA") == ("8.68", "10")
+    assert read_gpa("8.5/10 CGPA") == ("8.5", "10")
+    assert read_gpa("94.2% CGPA") == ("94.2", "100")
+    assert read_gpa("no grade here") == ("", "")
+
+
+def test_an_entry_with_no_dates_does_not_claim_to_be_ongoing():
+    """Plenty of résumés date neither side of an education entry."""
+    from jobwrapper.resume.render import _date_range
+
+    assert _date_range("", "") == ""
+    assert _date_range("2022-01", "") == "Jan 2022 – Present"
+    assert _date_range("2021-08", "2025-05") == "Aug 2021 – May 2025"
+
+
+def test_the_latex_template_actually_compiles():
+    """The section format uppercased the colour name, so LaTeX aborted and every résumé
+    silently fell back to the HTML renderer. Pin the shape that broke it."""
+    template = (Path(__file__).resolve().parents[1]
+                / "src" / "jobwrapper" / "templates" / "resume.tex.j2").read_text()
+    assert "\\uppercase}" not in template, "\\uppercase in the format block eats the colour name"
+    assert "\\MakeUppercase" in template
