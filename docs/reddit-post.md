@@ -1,7 +1,48 @@
 # Reddit post — draft
 
-**Before posting:** the repo is currently **private**. Make it public first, or every link in
-this post is a 404. See the notes at the bottom.
+## Short version (use this one)
+
+**Title:** *I built an open-source tool that tailors your résumé to each job and fills the applications — looking for people to break it*
+
+I've been building Job Wrapper for a few months and it finally works well enough that I need
+other people's résumés to find what's still broken.
+
+It pulls postings from 19 job boards, scores them against your profile, then for each job it
+reads the description, rewrites your LaTeX résumé around its keywords, compiles a fresh PDF,
+opens the form and fills it in.
+
+**It does not press submit.** It fills everything, screenshots each step, and stops. You look at
+it and send it yourself.
+
+The part I care about is the truthfulness firewall: it can re-order and re-phrase what your
+résumé already says, but it cannot add a skill, employer, degree or metric that isn't in there.
+Every generated résumé is diffed against your master copy and unsupported claims get reverted
+before a PDF exists. I built it that way because "let AI write your résumé" makes things you
+can't defend in an interview.
+
+Runs entirely on your machine. Works with no API key at all (there's a deterministic fallback),
+or point it at Ollama and it's fully local and free. Python + Playwright, MIT, 229 tests.
+
+**What I actually need:** a résumé it parses wrong. Every new template I try breaks something.
+Last week alone it was reading the GitHub URL out of the template's own header comment, mangling
+Indian phone numbers, filing a 10-point CGPA against a 4.0 scale, and defaulting everyone's
+country to the US — which then quietly answers the work-authorisation questions. All of those
+produce a *wrong value* rather than an error. There are more.
+
+Also happy to take: job sources I haven't added, ATSes it can't fill, and Windows/Linux testing
+(I've only road-tested macOS).
+
+https://github.com/piyushrajput0/job-wrapper
+
+Fork it, break it, tell me what went wrong. And if you think the whole idea is bad, I'd rather
+hear that now than after someone's application goes out wrong.
+
+---
+
+## Long version
+
+
+**Status:** the repo is public and its history has been scrubbed of personal data. Ready to post.
 
 **Where to post:** r/Python (best fit — it is a Python project with tests and CI) ·
 r/SideProject · r/opensource · r/coolgithubprojects · r/madeinindia.
@@ -92,13 +133,13 @@ goes out wrong.
 
 ## Before you post — checklist
 
-- [ ] **Make the repo public.** `gh repo edit --visibility public` (it will ask you to confirm).
-- [ ] **Scrub the git history first.** Commit `7bcb984` contains a real phone number and address
-      that were used as test fixtures. They're out of the working tree now, but git history keeps
-      them forever once the repo is public. Ask Claude to rewrite that commit before flipping the
-      switch, or accept that they'll be in the history.
+- [x] **Make the repo public.** Done.
+- [x] **Scrub the git history.** Done - history rewritten, verified clean from a fresh clone.
+
+
+
 - [ ] Check the README renders correctly on GitHub once it's public.
-- [ ] Add repo topics (`jobs`, `ats`, `resume`, `automation`, `playwright`) — it's how people find
-      it.
+- [x] Add repo topics. Done.
+
 - [ ] Consider turning on Issues templates and adding a `good first issue` label to a few things
       so the asks above have somewhere to land.
